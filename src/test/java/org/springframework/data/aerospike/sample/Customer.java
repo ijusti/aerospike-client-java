@@ -32,4 +32,11 @@ public class Customer {
     private String firstname, lastname;
     private long age;
     private char group;
+
+    public CustomerSomeFields toCustomerSomeFields() {
+        return CustomerSomeFields.builder()
+                .firstname(getFirstname())
+                .lastname(getLastname())
+                .build();
+    }
 }

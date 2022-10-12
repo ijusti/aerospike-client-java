@@ -169,12 +169,31 @@ public interface AerospikeOperations {
     <T> Stream<T> find(Query query, Class<T> entityClass);
 
     /**
+     * Find documents in the given entityClass's set using a query and map them to the given target class type.
+     *
+     * @param query       The query to filter results. Must not be {@literal null}.
+     * @param entityClass The class to extract the Aerospike set from. Must not be {@literal null}.
+     * @param targetClass The class to map the document to. Must not be {@literal null}.
+     * @return A Stream of matching documents, returned documents will be mapped to targetClass's type.
+     */
+    <T, S> Stream<S> find(Query query, Class<T> entityClass, Class<S> targetClass);
+
+    /**
      * Find all documents in the given entityClass's set and map them to the given class type.
      *
      * @param entityClass The class to extract the Aerospike set from and to map the documents to. Must not be {@literal null}.
      * @return A Stream of matching documents, returned documents will be mapped to entityClass's type.
      */
     <T> Stream<T> findAll(Class<T> entityClass);
+
+    /**
+     * Find all documents in the given entityClass's set and map them to the given target class type.
+     *
+     * @param entityClass The class to extract the Aerospike set from. Must not be {@literal null}.
+     * @param targetClass The class to map the document to. Must not be {@literal null}.
+     * @return A Stream of matching documents, returned documents will be mapped to targetClass's type.
+     */
+    <T, S> Stream<S> findAll(Class<T> entityClass, Class<S> targetClass);
 
     /**
      * Find a document by id, set name will be determined by the given entityClass.
@@ -188,6 +207,18 @@ public interface AerospikeOperations {
     <T> T findById(Object id, Class<T> entityClass);
 
     /**
+     * Find a document by id, set name will be determined by the given entityClass.
+     * <p>
+     * Document will be mapped to the given entityClass.
+     *
+     * @param id          The id of the document to find. Must not be {@literal null}.
+     * @param entityClass The class to extract the Aerospike set from. Must not be {@literal null}.
+     * @param targetClass The class to map the document to. Must not be {@literal null}.
+     * @return The document from Aerospike, returned document will be mapped to targetClass's type, if document doesn't exist return null.
+     */
+    <T, S> S findById(Object id, Class<T> entityClass, Class<S> targetClass);
+
+    /**
      * Find documents by providing multiple ids using a single batch read operation, set name will be determined by the given entityClass.
      * <p>
      * Documents will be mapped to the given entityClass.
@@ -197,6 +228,18 @@ public interface AerospikeOperations {
      * @return The documents from Aerospike, returned documents will be mapped to entityClass's type, if no document exists return an empty list.
      */
     <T> List<T> findByIds(Iterable<?> ids, Class<T> entityClass);
+
+    /**
+     * Find documents by providing multiple ids using a single batch read operation, set name will be determined by the given entityClass.
+     * <p>
+     * Documents will be mapped to the given targetClass.
+     *
+     * @param ids         The ids of the documents to find. Must not be {@literal null}.
+     * @param entityClass The class to extract the Aerospike set from. Must not be {@literal null}.
+     * @param targetClass The class to map the document to. Must not be {@literal null}.
+     * @return The documents from Aerospike, returned documents will be mapped to targetClass's type, if no document exists return an empty list.
+     */
+    <T, S> List<S> findByIds(Iterable<?> ids, Class<T> entityClass, Class<S> targetClass);
 
     /**
      * Executes a single batch request to get results for several entities.
@@ -296,11 +339,21 @@ public interface AerospikeOperations {
     /**
      * Find all documents in the given entityClass's set using a provided sort and map them to the given class type.
      *
-     * @param entityClass The class to extract the Aerospike set from and to map the documents to.
      * @param sort        The sort to affect the returned iterable documents order.
+     * @param entityClass The class to extract the Aerospike set from and to map the documents to.
      * @return An Iterable of matching documents, returned documents will be mapped to entityClass's type.
      */
     <T> Iterable<T> findAll(Sort sort, Class<T> entityClass);
+
+    /**
+     * Find all documents in the given entityClass's set using a provided sort and map them to the given target class type.
+     *
+     * @param sort        The sort to affect the returned iterable documents order.
+     * @param entityClass The class to extract the Aerospike set from.
+     * @param targetClass The class to map the document to. Must not be {@literal null}.
+     * @return An Iterable of matching documents, returned documents will be mapped to targetClass's type.
+     */
+    <T, S> Iterable<S> findAll(Sort sort, Class<T> entityClass, Class<S> targetClass);
 
     /**
      * Find documents in the given entityClass's set using a range (offset, limit) and a sort
@@ -313,6 +366,19 @@ public interface AerospikeOperations {
      * @return A Stream of matching documents, returned documents will be mapped to entityClass's type.
      */
     <T> Stream<T> findInRange(long offset, long limit, Sort sort, Class<T> entityClass);
+
+    /**
+     * Find documents in the given entityClass's set using a range (offset, limit) and a sort
+     * and map them to the given target class type.
+     *
+     * @param offset      The offset to start the range from.
+     * @param limit       The limit of the range.
+     * @param sort        The sort to affect the returned Stream of documents order.
+     * @param entityClass The class to extract the Aerospike set from. Must not be {@literal null}.
+     * @param targetClass The class to map the document to. Must not be {@literal null}.
+     * @return A Stream of matching documents, returned documents will be mapped to targetClass's type.
+     */
+    <T, S> Stream<S> findInRange(long offset, long limit, Sort sort, Class<T> entityClass, Class<S> targetClass);
 
     /**
      * Return the amount of documents in a query results. set name will be determined by the given entityClass.
