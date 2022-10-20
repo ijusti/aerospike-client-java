@@ -19,8 +19,9 @@ package org.springframework.data.aerospike.query;
 import com.aerospike.client.Value;
 import com.aerospike.client.query.IndexType;
 import com.aerospike.client.query.KeyRecord;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.data.aerospike.CollectionUtils;
@@ -50,12 +51,13 @@ import static org.springframework.data.aerospike.query.QueryEngineTestDataPopula
 /*
  * Tests to ensure that Qualifiers are built successfully for non indexed bins.
  */
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class QualifierTests extends BaseQueryEngineTests {
 
 	/*
 	 * These bins should not be indexed.
 	 */
-	@BeforeEach
+	@BeforeAll
 	public void dropIndexes() {
 		tryDropIndex(namespace, SET_NAME, "age_index");
 		tryDropIndex(namespace, SET_NAME, "color_index");
@@ -106,7 +108,6 @@ public class QualifierTests extends BaseQueryEngineTests {
 	@Test
 	public void lTQualifier() {
 		// Ages range from 25 -> 29. We expected to only get back values with age < 26
-
 		Qualifier qualifier = new Qualifier(new Qualifier.QualifierBuilder()
 				.setField("age")
 				.setFilterOperation(FilterOperation.LT)
@@ -124,7 +125,6 @@ public class QualifierTests extends BaseQueryEngineTests {
 	@Test
 	public void numericLTEQQualifier() {
 		// Ages range from 25 -> 29. We expected to only get back values with age <= 26
-
 		Qualifier qualifier = new Qualifier(new Qualifier.QualifierBuilder()
 				.setField("age")
 				.setFilterOperation(FilterOperation.LTEQ)
@@ -145,7 +145,6 @@ public class QualifierTests extends BaseQueryEngineTests {
 	@Test
 	public void numericEQQualifier() {
 		// Ages range from 25 -> 29. We expected to only get back values with age == 26
-
 		Qualifier qualifier = new Qualifier(new Qualifier.QualifierBuilder()
 				.setField("age")
 				.setFilterOperation(FilterOperation.EQ)
@@ -163,7 +162,6 @@ public class QualifierTests extends BaseQueryEngineTests {
 	@Test
 	public void numericGTEQQualifier() {
 		// Ages range from 25 -> 29. We expected to only get back values with age >= 28
-
 		Qualifier qualifier = new Qualifier(new Qualifier.QualifierBuilder()
 				.setField("age")
 				.setFilterOperation(FilterOperation.GTEQ)
@@ -184,7 +182,6 @@ public class QualifierTests extends BaseQueryEngineTests {
 	@Test
 	public void numericGTQualifier() {
 		// Ages range from 25 -> 29. We expected to only get back values with age > 28 or equivalently == 29
-
 		Qualifier qualifier = new Qualifier(new Qualifier.QualifierBuilder()
 				.setField("age")
 				.setFilterOperation(FilterOperation.GT)
@@ -201,7 +198,6 @@ public class QualifierTests extends BaseQueryEngineTests {
 
 	@Test
 	public void stringEQQualifier() {
-
 		Qualifier qualifier = new Qualifier(new Qualifier.QualifierBuilder()
 				.setField("color")
 				.setFilterOperation(FilterOperation.EQ)
@@ -218,7 +214,6 @@ public class QualifierTests extends BaseQueryEngineTests {
 
 	@Test
 	public void stringEQIgnoreCaseQualifier() {
-
 		Qualifier qualifier = new Qualifier(
 				new Qualifier.QualifierBuilder()
 						.setField("color")
@@ -274,6 +269,8 @@ public class QualifierTests extends BaseQueryEngineTests {
 					.hasSize(queryEngineTestDataPopulator.colourCounts.get(BLUE));
 			// scan will be run, since Aerospike filter does not support case-insensitive string comparison
 		});
+
+		tryDropIndex(namespace, SET_NAME, "color_index");
 	}
 
 	@Test
@@ -293,7 +290,6 @@ public class QualifierTests extends BaseQueryEngineTests {
 
 	@Test
 	public void stringStartWithQualifier() {
-
 		Qualifier qualifier = new Qualifier(new Qualifier.QualifierBuilder()
 				.setField("color")
 				.setFilterOperation(FilterOperation.STARTS_WITH)
@@ -310,7 +306,6 @@ public class QualifierTests extends BaseQueryEngineTests {
 
 	@Test
 	public void stringStartWithEntireWordQualifier() {
-
 		Qualifier qualifier = new Qualifier(new Qualifier.QualifierBuilder()
 				.setField("color")
 				.setFilterOperation(FilterOperation.STARTS_WITH)
@@ -327,7 +322,6 @@ public class QualifierTests extends BaseQueryEngineTests {
 
 	@Test
 	public void stringStartWithICASEQualifier() {
-
 		Qualifier qualifier = new Qualifier(
 				new Qualifier.QualifierBuilder()
 						.setField("color")
@@ -346,7 +340,6 @@ public class QualifierTests extends BaseQueryEngineTests {
 
 	@Test
 	public void stringEndsWithQualifier() {
-
 		Qualifier qualifier = new Qualifier(new Qualifier.QualifierBuilder()
 				.setField("color")
 				.setFilterOperation(FilterOperation.ENDS_WITH)
@@ -363,7 +356,6 @@ public class QualifierTests extends BaseQueryEngineTests {
 
 	@Test
 	public void selectEndsWith() {
-
 		Qualifier qualifier = new Qualifier(new Qualifier.QualifierBuilder()
 				.setField("color")
 				.setFilterOperation(FilterOperation.ENDS_WITH)
@@ -380,7 +372,6 @@ public class QualifierTests extends BaseQueryEngineTests {
 
 	@Test
 	public void stringEndsWithEntireWordQualifier() {
-
 		Qualifier qualifier = new Qualifier(new Qualifier.QualifierBuilder()
 				.setField("color")
 				.setFilterOperation(FilterOperation.ENDS_WITH)
@@ -398,7 +389,6 @@ public class QualifierTests extends BaseQueryEngineTests {
 	@Test
 	public void betweenQualifier() {
 		// Ages range from 25 -> 29. Get back age between 26 and 28 inclusive
-
 		Qualifier.QualifierBuilder qb = new Qualifier.QualifierBuilder()
 				.setField("age")
 				.setFilterOperation(FilterOperation.BETWEEN)
@@ -618,7 +608,6 @@ public class QualifierTests extends BaseQueryEngineTests {
 
 	@Test
 	public void containingDoesNotUseSpecialCharacterQualifier() {
-
 		Qualifier qualifier = new Qualifier(new Qualifier.QualifierBuilder()
 				.setField(SPECIAL_CHAR_BIN)
 				.setFilterOperation(FilterOperation.CONTAINING)
@@ -634,7 +623,6 @@ public class QualifierTests extends BaseQueryEngineTests {
 
 	@Test
 	public void startWithDoesNotUseSpecialCharacterQualifier() {
-
 		Qualifier qualifier = new Qualifier(new Qualifier.QualifierBuilder()
 				.setField(SPECIAL_CHAR_BIN)
 				.setFilterOperation(FilterOperation.STARTS_WITH)
@@ -650,7 +638,6 @@ public class QualifierTests extends BaseQueryEngineTests {
 
 	@Test
 	public void endWithDoesNotUseSpecialCharacterQualifier() {
-
 		Qualifier qualifier = new Qualifier(new Qualifier.QualifierBuilder()
 				.setField(SPECIAL_CHAR_BIN)
 				.setFilterOperation(FilterOperation.ENDS_WITH)
@@ -666,7 +653,6 @@ public class QualifierTests extends BaseQueryEngineTests {
 
 	@Test
 	public void eQIcaseDoesNotUseSpecialCharacter() {
-
 		Qualifier qualifier = new Qualifier(
 				new Qualifier.QualifierBuilder()
 						.setField(SPECIAL_CHAR_BIN)
@@ -682,7 +668,6 @@ public class QualifierTests extends BaseQueryEngineTests {
 	@ParameterizedTest
 	@ValueSource(strings = {"[", "$", "\\", "^"})
 	public void containingFindsSquareBracket(String specialString) {
-
 		Qualifier qualifier = new Qualifier(
 				new Qualifier.QualifierBuilder()
 						.setField(SPECIAL_CHAR_BIN)
@@ -720,7 +705,6 @@ public class QualifierTests extends BaseQueryEngineTests {
 
 	@Test
 	public void startWithAndEqualIgnoreCaseReturnsAllItems() {
-
 		boolean ignoreCase = true;
 		Qualifier qual1 = new Qualifier(
 				new Qualifier.QualifierBuilder()
@@ -747,7 +731,6 @@ public class QualifierTests extends BaseQueryEngineTests {
 
 	@Test
 	public void equalIgnoreCaseReturnsNoItemsIfNoneMatched() {
-
 		boolean ignoreCase = false;
 		Qualifier qual1 = new Qualifier(
 				new Qualifier.QualifierBuilder()
@@ -763,7 +746,6 @@ public class QualifierTests extends BaseQueryEngineTests {
 
 	@Test
 	public void startWithIgnoreCaseReturnsNoItemsIfNoneMatched() {
-
 		boolean ignoreCase = false;
 		Qualifier qual1 = new Qualifier(
 				new Qualifier.QualifierBuilder()
@@ -779,7 +761,6 @@ public class QualifierTests extends BaseQueryEngineTests {
 
 	@Test
 	public void selectWithBetweenAndOrQualifiers() {
-
 		Qualifier.QualifierBuilder qbColorIsGreen = new Qualifier.QualifierBuilder()
 				.setField("color")
 				.setFilterOperation(FilterOperation.EQ)
@@ -837,7 +818,6 @@ public class QualifierTests extends BaseQueryEngineTests {
 
 	@Test
 	public void selectWithOrQualifiers() {
-
 		// We are  expecting to get back all records where color == blue or (age == 28 || age == 29)
 		Qualifier.QualifierBuilder qbColorIsBlue = new Qualifier.QualifierBuilder()
 				.setField("color")
@@ -878,6 +858,4 @@ public class QualifierTests extends BaseQueryEngineTests {
 				.isNotEmpty()
 				.hasSize(queryEngineTestDataPopulator.colourCounts.get(BLUE));
 	}
-
-
 }

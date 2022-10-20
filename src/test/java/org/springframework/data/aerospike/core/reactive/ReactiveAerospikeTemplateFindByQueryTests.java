@@ -1,8 +1,10 @@
 package org.springframework.data.aerospike.core.reactive;
 
 import com.aerospike.client.query.IndexType;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
 import org.springframework.data.aerospike.BaseReactiveIntegrationTests;
 import org.springframework.data.aerospike.QueryUtils;
 import org.springframework.data.aerospike.repository.query.CriteriaDefinition;
@@ -10,9 +12,7 @@ import org.springframework.data.aerospike.repository.query.Query;
 import org.springframework.data.aerospike.sample.Address;
 import org.springframework.data.aerospike.sample.Person;
 import org.springframework.data.domain.Sort;
-import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Schedulers;
-import reactor.test.StepVerifier;
 
 import java.util.Collections;
 import java.util.Comparator;
@@ -23,17 +23,21 @@ import java.util.stream.IntStream;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class ReactiveAerospikeTemplateFindByQueryTests extends BaseReactiveIntegrationTests {
+
+    @BeforeAll
+    public void beforeAllSetUp() {
+        additionalAerospikeTestOperations.createIndexIfNotExists(Person.class, "person_age_index", "age", IndexType.NUMERIC);
+        additionalAerospikeTestOperations.createIndexIfNotExists(Person.class, "person_last_name_index", "lastName", IndexType.STRING);
+        additionalAerospikeTestOperations.createIndexIfNotExists(Person.class, "person_first_name_index", "firstName", IndexType.STRING);
+    }
 
     @Override
     @BeforeEach
     public void setUp() {
         super.setUp();
-        additionalAerospikeTestOperations.deleteAll(Person.class);
-
-        additionalAerospikeTestOperations.createIndexIfNotExists(Person.class, "person_age_index", "age", IndexType.NUMERIC);
-        additionalAerospikeTestOperations.createIndexIfNotExists(Person.class, "person_last_name_index", "lastName", IndexType.STRING);
-        additionalAerospikeTestOperations.createIndexIfNotExists(Person.class, "person_first_name_index", "firstName", IndexType.STRING);
+        additionalAerospikeTestOperations.deleteAllAndVerify(Person.class);
     }
 
     @Test
@@ -51,10 +55,11 @@ public class ReactiveAerospikeTemplateFindByQueryTests extends BaseReactiveInteg
 
     @Test
     public void findAll_findNothing() {
-        StepVerifier.create(reactiveTemplate.findAll(Person.class)
-                .subscribeOn(Schedulers.parallel()))
-                .expectNextCount(0)
-                .verifyComplete();
+        List<Person> actual = reactiveTemplate.findAll(Person.class)
+                .subscribeOn(Schedulers.parallel())
+                .collectList().block();
+
+        assertThat(actual).hasSize(0);
     }
 
     @Test
@@ -184,11 +189,11 @@ public class ReactiveAerospikeTemplateFindByQueryTests extends BaseReactiveInteg
         Object[] args = {"NonExistingSurname"};
         Query query = QueryUtils.createQueryForMethodWithArgs("findByLastNameOrderByFirstNameDesc", args);
 
-        Flux<Person> result = reactiveTemplate.find(query, Person.class);
+        List<Person> result = reactiveTemplate.find(query, Person.class)
+                .subscribeOn(Schedulers.parallel())
+                .collectList().block();
 
-        StepVerifier.create(result)
-                .expectNextCount(0)
-                .verifyComplete();
+        assertThat(result).hasSize(0);
     }
 
     @Test

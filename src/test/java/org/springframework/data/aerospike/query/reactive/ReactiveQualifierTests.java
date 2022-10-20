@@ -19,8 +19,9 @@ package org.springframework.data.aerospike.query.reactive;
 import com.aerospike.client.Value;
 import com.aerospike.client.query.IndexType;
 import com.aerospike.client.query.KeyRecord;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
 import org.springframework.data.aerospike.query.FilterOperation;
 import org.springframework.data.aerospike.query.Qualifier;
 import reactor.core.publisher.Flux;
@@ -65,12 +66,13 @@ import static org.springframework.data.aerospike.query.QueryEngineTestDataPopula
 /*
  * Tests to ensure that Qualifiers are built successfully for non indexed bins.
  */
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class ReactiveQualifierTests extends BaseReactiveQueryEngineTests {
 
 	/*
 	 * These bins should not be indexed.
 	 */
-	@BeforeEach
+	@BeforeAll
 	public void dropIndexes() {
 		super.tryDropIndex(namespace, SET_NAME, "age_index");
 		super.tryDropIndex(namespace, SET_NAME, "color_index");
@@ -120,7 +122,6 @@ public class ReactiveQualifierTests extends BaseReactiveQueryEngineTests {
 
 	@Test
 	public void numericLTEQQualifier() {
-
 		// Ages range from 25 -> 29. We expected to only get back values with age <= 26
 		Qualifier AgeRangeQualifier = new Qualifier(new Qualifier.QualifierBuilder()
 				.setField("age")
@@ -151,7 +152,6 @@ public class ReactiveQualifierTests extends BaseReactiveQueryEngineTests {
 
 	@Test
 	public void numericEQQualifier() {
-
 		// Ages range from 25 -> 29. We expected to only get back values with age == 26
 		Qualifier AgeRangeQualifier = new Qualifier(new Qualifier.QualifierBuilder()
 				.setField("age")
@@ -202,7 +202,6 @@ public class ReactiveQualifierTests extends BaseReactiveQueryEngineTests {
 
 	@Test
 	public void numericGTQualifier() {
-
 		// Ages range from 25 -> 29. We expected to only get back values with age > 28 or equivalently == 29
 		Qualifier AgeRangeQualifier = new Qualifier(new Qualifier.QualifierBuilder()
 				.setField("age")
@@ -720,7 +719,6 @@ public class ReactiveQualifierTests extends BaseReactiveQueryEngineTests {
 
 	@Test
 	public void testContainingFindsSquareBracket() {
-
 		String[] specialStrings = new String[]{"[", "$", "\\", "^"};
 		for (String specialString : specialStrings) {
 			Qualifier AgeRangeQualifier = new Qualifier(
@@ -775,7 +773,6 @@ public class ReactiveQualifierTests extends BaseReactiveQueryEngineTests {
 
 	@Test
 	public void selectWithOrQualifiers() {
-
 		String expectedColor = BLUE;
 
 		// We are  expecting to get back all records where color == blue or (age == 28 || age == 29)

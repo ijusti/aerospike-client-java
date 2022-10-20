@@ -15,6 +15,7 @@
  */
 package org.springframework.data.aerospike.core;
 
+import org.awaitility.Awaitility;
 import com.aerospike.client.Value;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,6 +26,9 @@ import org.springframework.data.aerospike.repository.query.AerospikeCriteria;
 import org.springframework.data.aerospike.repository.query.Query;
 import org.springframework.data.aerospike.sample.Person;
 
+import java.time.Duration;
+import java.util.Objects;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -34,7 +38,7 @@ public class AerospikeTemplateCountTests extends BaseBlockingIntegrationTests {
     @BeforeEach
     public void setUp() {
         super.setUp();
-        additionalAerospikeTestOperations.deleteAll(Person.class);
+        additionalAerospikeTestOperations.deleteAllAndVerify(Person.class);
     }
 
     @Test
@@ -161,8 +165,12 @@ public class AerospikeTemplateCountTests extends BaseBlockingIntegrationTests {
         template.insert(new Person(nextId(), "vasili", 52));
         template.insert(new Person(nextId(), "petya", 52));
 
-        long count = template.count(Person.class);
+        Awaitility.await()
+                .atMost(Duration.ofSeconds(15))
+                .until(() -> isCountExactlyNum(4L));
+    }
 
-        assertThat(count).isEqualTo(4);
+    private boolean isCountExactlyNum(Long num) {
+        return Objects.equals(template.count(Person.class), num);
     }
 }
