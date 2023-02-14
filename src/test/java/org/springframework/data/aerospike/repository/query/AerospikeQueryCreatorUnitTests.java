@@ -11,38 +11,37 @@ import org.springframework.data.aerospike.sample.Person;
 import org.springframework.data.mapping.context.MappingContext;
 import org.springframework.data.repository.query.parser.PartTree;
 
-import java.lang.reflect.Method;
-
 /**
  * @author Peter Milne
  * @author Jean Mercier
  */
 public class AerospikeQueryCreatorUnitTests {
 
-	MappingContext<?, AerospikePersistentProperty> context;
-	Method findByFirstname, findByFirstnameAndFriend, findByFirstnameNotNull, findByFirstNameIn;
-	@Mock
-	AerospikeConverter converter;
+    MappingContext<?, AerospikePersistentProperty> context;
+    @Mock
+    AerospikeConverter converter;
 
-	@BeforeEach
-	public void setUp() {
-		MockitoAnnotations.initMocks(this);
-		context = new AerospikeMappingContext();
-	}
+    @BeforeEach
+    public void setUp() {
+        MockitoAnnotations.initMocks(this);
+        context = new AerospikeMappingContext();
+    }
 
-	@Test
-	public void createsQueryCorrectly() {
-		PartTree tree = new PartTree("findByFirstName", Person.class);
+    @Test
+    public void createsQueryCorrectly() {
+        PartTree tree = new PartTree("findByFirstName", Person.class);
 
-		AerospikeQueryCreator creator = new AerospikeQueryCreator(tree, new StubParameterAccessor(converter, "Oliver"), context);
-		Query query = creator.createQuery();
-	}
-	
-	@Test
-	public void createQueryByInList(){
-		PartTree tree = new PartTree("findByFirstNameOrFriend", Person.class);
+        AerospikeQueryCreator creator = new AerospikeQueryCreator(tree, new StubParameterAccessor(converter,
+            "Oliver"), context);
+        Query query = creator.createQuery();
+    }
 
-		AerospikeQueryCreator creator = new AerospikeQueryCreator(tree, new StubParameterAccessor(converter, new String[]{"Oliver", "Peter"}), context);
-		Query query = creator.createQuery();	
-	}
+    @Test
+    public void createQueryByInList() {
+        PartTree tree = new PartTree("findByFirstNameOrFriend", Person.class);
+
+        AerospikeQueryCreator creator = new AerospikeQueryCreator(tree, new StubParameterAccessor(converter,
+            new String[]{"Oliver", "Peter"}), context);
+        Query query = creator.createQuery();
+    }
 }

@@ -16,7 +16,11 @@
 package org.springframework.data.aerospike.repository.query;
 
 import org.springframework.beans.BeanUtils;
-import org.springframework.data.repository.query.*;
+import org.springframework.data.repository.query.ParameterAccessor;
+import org.springframework.data.repository.query.ParametersParameterAccessor;
+import org.springframework.data.repository.query.QueryMethod;
+import org.springframework.data.repository.query.QueryMethodEvaluationContextProvider;
+import org.springframework.data.repository.query.RepositoryQuery;
 import org.springframework.data.repository.query.parser.AbstractQueryCreator;
 import org.springframework.data.repository.query.parser.PartTree;
 import org.springframework.expression.EvaluationContext;
@@ -32,13 +36,13 @@ import java.lang.reflect.Constructor;
  */
 public abstract class BaseAerospikePartTreeQuery implements RepositoryQuery {
 
+    protected final QueryMethod queryMethod;
     private final QueryMethodEvaluationContextProvider evaluationContextProvider;
     private final Class<? extends AbstractQueryCreator<?, ?>> queryCreator;
-    protected final QueryMethod queryMethod;
 
-    public BaseAerospikePartTreeQuery(QueryMethod queryMethod,
-                                      QueryMethodEvaluationContextProvider evalContextProvider,
-                                      Class<? extends AbstractQueryCreator<?, ?>> queryCreator) {
+    protected BaseAerospikePartTreeQuery(QueryMethod queryMethod,
+                                         QueryMethodEvaluationContextProvider evalContextProvider,
+                                         Class<? extends AbstractQueryCreator<?, ?>> queryCreator) {
         this.queryMethod = queryMethod;
         this.evaluationContextProvider = evalContextProvider;
         this.queryCreator = queryCreator;
@@ -71,7 +75,7 @@ public abstract class BaseAerospikePartTreeQuery implements RepositoryQuery {
 
         if (q.getCriteria() instanceof SpelExpression) {
             EvaluationContext context = this.evaluationContextProvider.getEvaluationContext(queryMethod.getParameters(),
-                    parameters);
+                parameters);
             ((SpelExpression) q.getCriteria()).setEvaluationContext(context);
         }
 
@@ -82,7 +86,7 @@ public abstract class BaseAerospikePartTreeQuery implements RepositoryQuery {
         PartTree tree = new PartTree(queryMethod.getName(), queryMethod.getEntityInformation().getJavaType());
 
         Constructor<? extends AbstractQueryCreator<?, ?>> constructor = ClassUtils
-                .getConstructorIfAvailable(queryCreator, PartTree.class, ParameterAccessor.class);
+            .getConstructorIfAvailable(queryCreator, PartTree.class, ParameterAccessor.class);
         return (Query) BeanUtils.instantiateClass(constructor, tree, accessor).createQuery();
     }
 }

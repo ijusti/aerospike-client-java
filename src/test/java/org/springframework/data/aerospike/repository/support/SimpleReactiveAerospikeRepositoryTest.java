@@ -61,9 +61,9 @@ public class SimpleReactiveAerospikeRepositoryTest {
     public void setUp() {
         testCustomer = Customer.builder().id("21").firstName("Jean").build();
         testCustomers = asList(
-                Customer.builder().id("one").firstName("Jean").age(21).build(),
-                Customer.builder().id("two").firstName("Jean2").age(22).build(),
-                Customer.builder().id("three").firstName("Jean3").age(23).build());
+            Customer.builder().id("one").firstName("Jean").age(21).build(),
+            Customer.builder().id("two").firstName("Jean2").age(22).build(),
+            Customer.builder().id("three").firstName("Jean3").age(23).build());
     }
 
     @Test
@@ -117,7 +117,6 @@ public class SimpleReactiveAerospikeRepositoryTest {
         assertThat(result).isEqualTo(testCustomer);
     }
 
-
     @Test
     public void testFindAll() {
         when(metadata.getJavaType()).thenReturn(Customer.class);
@@ -143,8 +142,9 @@ public class SimpleReactiveAerospikeRepositoryTest {
     public void testFindAllByIdPublisher() {
         Map<String, Customer> id2person = testCustomers.stream().collect(toMap(Customer::getId, person -> person));
         when(metadata.getJavaType()).thenReturn(Customer.class);
+        //noinspection SuspiciousMethodCalls
         when(operations.findById(any(String.class), eq(Customer.class)))
-                .then(invocation -> Mono.just(id2person.get(invocation.getArgument(0))));
+            .then(invocation -> Mono.just(id2person.get(invocation.getArgument(0))));
 
         List<Customer> result = repository.findAllById(Flux.fromIterable(id2person.keySet())).collectList().block();
 

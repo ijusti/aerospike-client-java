@@ -42,7 +42,11 @@ import org.springframework.data.mapping.model.PropertyNameFieldNamingStrategy;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.StringUtils;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  * @author Taras Danylchuk
@@ -117,11 +121,15 @@ public abstract class AerospikeDataConfigurationSupport {
         Set<Class<?>> initialEntitySet = new HashSet<>();
 
         if (StringUtils.hasText(basePackage)) {
-            ClassPathScanningCandidateComponentProvider componentProvider = new ClassPathScanningCandidateComponentProvider(false);
+            ClassPathScanningCandidateComponentProvider componentProvider =
+                new ClassPathScanningCandidateComponentProvider(false);
+
             componentProvider.addIncludeFilter(new AnnotationTypeFilter(Document.class));
             componentProvider.addIncludeFilter(new AnnotationTypeFilter(Persistent.class));
+
             for (BeanDefinition candidate : componentProvider.findCandidateComponents(basePackage)) {
-                initialEntitySet.add(ClassUtils.forName(candidate.getBeanClassName(), AerospikeDataConfigurationSupport.class.getClassLoader()));
+                initialEntitySet.add(ClassUtils.forName(candidate.getBeanClassName(),
+                    AerospikeDataConfigurationSupport.class.getClassLoader()));
             }
         }
 
@@ -132,6 +140,7 @@ public abstract class AerospikeDataConfigurationSupport {
         return getClass().getPackage().getName();
     }
 
+    @SuppressWarnings("SameReturnValue")
     protected FieldNamingStrategy fieldNamingStrategy() {
         return PropertyNameFieldNamingStrategy.INSTANCE;
     }
@@ -140,6 +149,7 @@ public abstract class AerospikeDataConfigurationSupport {
 
     protected abstract String nameSpace();
 
+    @SuppressWarnings("SameReturnValue")
     protected boolean isCreateIndexesOnStartup() {
         return true;
     }

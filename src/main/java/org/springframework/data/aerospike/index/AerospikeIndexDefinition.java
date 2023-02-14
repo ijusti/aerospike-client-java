@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.springframework.data.aerospike.index;
 
 import com.aerospike.client.query.IndexCollectionType;
@@ -28,6 +27,7 @@ import lombok.Value;
 @Value
 @Builder
 public class AerospikeIndexDefinition {
+
     @NonNull
     String name;
     @NonNull

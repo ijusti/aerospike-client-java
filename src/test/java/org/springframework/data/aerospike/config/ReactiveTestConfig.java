@@ -37,8 +37,8 @@ public class ReactiveTestConfig extends AbstractReactiveAerospikeDataConfigurati
     @Override
     protected List<?> customConverters() {
         return Arrays.asList(
-                SampleClasses.CompositeKey.CompositeKeyToStringConverter.INSTANCE,
-                SampleClasses.CompositeKey.StringToCompositeKeyConverter.INSTANCE
+            SampleClasses.CompositeKey.CompositeKeyToStringConverter.INSTANCE,
+            SampleClasses.CompositeKey.StringToCompositeKeyConverter.INSTANCE
         );
     }
 
@@ -55,7 +55,7 @@ public class ReactiveTestConfig extends AbstractReactiveAerospikeDataConfigurati
     @Override
     protected EventLoops eventLoops() {
         return new NioEventLoops();
-        //TODO: support parameterized EventLoopType
+        // TODO: support parameterized EventLoopType
         /*
 		case DIRECT_NIO: {
 			return new NioEventLoops(1);

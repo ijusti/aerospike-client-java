@@ -21,6 +21,10 @@ public abstract class BaseIntegrationTests {
     @Autowired
     protected AdditionalAerospikeTestOperations additionalAerospikeTestOperations;
 
+    protected static String nextId() {
+        return AerospikeUniqueId.nextId();
+    }
+
     @BeforeEach
     public void setUp() {
         this.id = nextId();
@@ -29,9 +33,4 @@ public abstract class BaseIntegrationTests {
     protected String getNameSpace() {
         return namespace;
     }
-
-    protected static String nextId() {
-        return AerospikeUniqueId.nextId();
-    }
-
 }

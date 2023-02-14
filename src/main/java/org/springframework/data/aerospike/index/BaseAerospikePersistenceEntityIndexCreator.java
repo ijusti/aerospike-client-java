@@ -13,8 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-
 package org.springframework.data.aerospike.index;
 
 import lombok.RequiredArgsConstructor;
@@ -37,7 +35,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 @Slf4j
 @RequiredArgsConstructor
-public abstract class BaseAerospikePersistenceEntityIndexCreator implements ApplicationListener<MappingContextEvent<?, ?>> , SmartLifecycle {
+public abstract class BaseAerospikePersistenceEntityIndexCreator
+    implements ApplicationListener<MappingContextEvent<?, ?>>, SmartLifecycle {
 
     private final ObjectProvider<AerospikeMappingContext> mappingContext;
     private final boolean createIndexesOnStartup;
@@ -56,10 +55,9 @@ public abstract class BaseAerospikePersistenceEntityIndexCreator implements Appl
             return;
         }
         PersistentEntity<?, ?> entity = event.getPersistentEntity();
-        if (!(entity instanceof BasicAerospikePersistentEntity)) {
+        if (!(entity instanceof BasicAerospikePersistentEntity<?> persistentEntity)) {
             return;
         }
-        BasicAerospikePersistentEntity<?> persistentEntity = (BasicAerospikePersistentEntity<?>) entity;
         Set<AerospikeIndexDefinition> indexes = aerospikeIndexResolver.detectIndexes(persistentEntity);
         if (!indexes.isEmpty()) {
             if (!initialized.get()) {
@@ -76,21 +74,22 @@ public abstract class BaseAerospikePersistenceEntityIndexCreator implements Appl
     public void start() {
         initialized.set(true);
         initialIndexes
-                .forEach(event -> {
-                    AerospikeMappingContext mappingContext = getMappingContext();
-                    if (event.getEvent().wasEmittedBy(mappingContext)) {
-                        // process this event
-                        installIndexes(event.getIndexes());
-                    }
-                });
+            .forEach(event -> {
+                AerospikeMappingContext mappingContext = getMappingContext();
+                if (event.getEvent().wasEmittedBy(mappingContext)) {
+                    // process this event
+                    installIndexes(event.getIndexes());
+                }
+            });
 
         initialIndexes.clear();
     }
 
     private AerospikeMappingContext getMappingContext() {
         AerospikeMappingContext mappingContext = this.mappingContext.getIfUnique();
-        if(mappingContext == null) {
-            throw new IllegalStateException("AerospikeMappingContext bean is not available in context OR is not unique");
+        if (mappingContext == null) {
+            throw new IllegalStateException(
+                "AerospikeMappingContext bean is not available in context OR is not unique");
         }
         return mappingContext;
     }
@@ -108,8 +107,8 @@ public abstract class BaseAerospikePersistenceEntityIndexCreator implements Appl
 
     @Value
     private static class IndexesEvent {
+
         Set<AerospikeIndexDefinition> indexes;
         MappingContextEvent<?, ?> event;
     }
-
 }

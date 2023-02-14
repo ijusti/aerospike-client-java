@@ -11,7 +11,6 @@ import reactor.test.StepVerifier;
 import java.util.HashMap;
 import java.util.Map;
 
-
 /**
  * Tests for save related methods in {@link ReactiveAerospikeTemplate}.
  *
@@ -31,8 +30,8 @@ public class ReactiveAerospikeTemplateModificationRelatedTests extends BaseReact
 
         // then
         StepVerifier.create(updated)
-                .expectNext(Person.builder().id(id).age(26).build())
-                .verifyComplete();
+            .expectNext(Person.builder().id(id).age(26).build())
+            .verifyComplete();
     }
 
     @Test
@@ -43,7 +42,8 @@ public class ReactiveAerospikeTemplateModificationRelatedTests extends BaseReact
         StepVerifier.create(created).expectNext(one).verifyComplete();
 
         // when
-        Mono<Person> appended = reactiveTemplate.append(one, "firstName", "tya").subscribeOn(Schedulers.parallel());
+        Mono<Person> appended = reactiveTemplate.append(one, "firstName", "tya")
+            .subscribeOn(Schedulers.parallel());
 
         // then
         Person expected = Person.builder().id(id).firstName("Nastya").build();
@@ -84,7 +84,7 @@ public class ReactiveAerospikeTemplateModificationRelatedTests extends BaseReact
 
         // when
         Mono<Person> appended = reactiveTemplate.prepend(one, "firstName", "Nas")
-                .subscribeOn(Schedulers.parallel());
+            .subscribeOn(Schedulers.parallel());
 
         // then
         Person expected = Person.builder().id(id).firstName("Nastya").build();

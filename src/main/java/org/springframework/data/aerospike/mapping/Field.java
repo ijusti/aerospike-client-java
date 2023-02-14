@@ -31,8 +31,9 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.FIELD)
 public @interface Field {
-	/**
-	 * The key to be used to store the field inside the document.
-	 */
-	String value() default "";
+
+    /**
+     * The key to be used to store the field inside the document.
+     */
+    String value() default "";
 }

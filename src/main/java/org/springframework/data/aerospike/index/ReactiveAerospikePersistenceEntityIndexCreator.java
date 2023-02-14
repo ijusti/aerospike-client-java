@@ -13,8 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-
 package org.springframework.data.aerospike.index;
 
 import lombok.extern.slf4j.Slf4j;
@@ -46,22 +44,24 @@ public class ReactiveAerospikePersistenceEntityIndexCreator extends BaseAerospik
     @Override
     protected void installIndexes(Set<AerospikeIndexDefinition> indexes) {
         Flux.fromIterable(indexes)
-                .flatMap(this::installIndex)
-                .then()
-                //blocking for having context fail fast in case any issues with index creation
-                .block();
+            .flatMap(this::installIndex)
+            .then()
+            //blocking for having context fail fast in case any issues with index creation
+            .block();
     }
 
     private Mono<Void> installIndex(AerospikeIndexDefinition index) {
         log.debug("Installing aerospike index: {}...", index);
-        return template.createIndex(index.getEntityClass(), index.getName(), index.getFieldName(), index.getType(), index.getCollectionType())
-                .doOnSuccess(__ -> log.info("Installed aerospike index: {} successfully.", index))
-                .onErrorResume(IndexAlreadyExistsException.class, e -> onIndexAlreadyExists(e, index))
-                .doOnError(throwable -> log.error("Failed to install aerospike index: " + index, throwable));
+        return template.createIndex(index.getEntityClass(), index.getName(), index.getFieldName(), index.getType(),
+                index.getCollectionType())
+            .doOnSuccess(__ -> log.info("Installed aerospike index: {} successfully.", index))
+            .onErrorResume(IndexAlreadyExistsException.class, e -> onIndexAlreadyExists(e, index))
+            .doOnError(throwable -> log.error("Failed to install aerospike index: " + index, throwable));
     }
 
     private Mono<? extends Void> onIndexAlreadyExists(Throwable throwable, AerospikeIndexDefinition indexDefinition) {
-        log.info("Skipping index [{}] creation. Index with the same name already exists. {}", indexDefinition, throwable.getMessage());
+        log.info("Skipping index [{}] creation. Index with the same name already exists. {}", indexDefinition,
+            throwable.getMessage());
         return Mono.empty();
     }
 }

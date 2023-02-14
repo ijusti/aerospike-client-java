@@ -16,10 +16,14 @@
  */
 package org.springframework.data.aerospike.query;
 
-public class QualifierException extends RuntimeException {
-	private static final long serialVersionUID = 1L;
+import java.io.Serial;
 
-	public QualifierException(String msg) {
-		super(msg);
-	}
+public class QualifierException extends RuntimeException {
+
+    @Serial
+    private static final long serialVersionUID = 1L;
+
+    public QualifierException(String msg) {
+        super(msg);
+    }
 }

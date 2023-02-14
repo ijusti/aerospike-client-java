@@ -19,5 +19,10 @@ import org.springframework.data.aerospike.query.model.IndexesInfo;
 
 public interface IndexesCacheUpdater {
 
-	void update(IndexesInfo cache);
+    /**
+     * Update {@link IndexesInfo} cache.
+     *
+     * @param cache to be used
+     */
+    void update(IndexesInfo cache);
 }

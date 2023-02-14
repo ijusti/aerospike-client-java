@@ -15,13 +15,25 @@
  */
 package org.springframework.data.aerospike.core;
 
+import com.aerospike.client.AerospikeException;
+import com.aerospike.client.Bin;
+import com.aerospike.client.IAerospikeClient;
+import com.aerospike.client.Info;
+import com.aerospike.client.Key;
+import com.aerospike.client.Operation;
 import com.aerospike.client.Record;
-import com.aerospike.client.*;
+import com.aerospike.client.ResultCode;
+import com.aerospike.client.Value;
 import com.aerospike.client.cdt.CTX;
 import com.aerospike.client.cluster.Node;
 import com.aerospike.client.policy.RecordExistsAction;
 import com.aerospike.client.policy.WritePolicy;
-import com.aerospike.client.query.*;
+import com.aerospike.client.query.Filter;
+import com.aerospike.client.query.IndexCollectionType;
+import com.aerospike.client.query.IndexType;
+import com.aerospike.client.query.KeyRecord;
+import com.aerospike.client.query.ResultSet;
+import com.aerospike.client.query.Statement;
 import com.aerospike.client.task.IndexTask;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.aerospike.convert.AerospikeWriteData;
@@ -43,7 +55,14 @@ import org.springframework.data.mapping.PropertyHandler;
 import org.springframework.data.util.StreamUtils;
 import org.springframework.util.Assert;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -94,7 +113,8 @@ public class AerospikeTemplate extends BaseAerospikeTemplate implements Aerospik
 
     @Override
     public <T> void createIndex(Class<T> entityClass, String indexName,
-                                String binName, IndexType indexType, IndexCollectionType indexCollectionType, CTX... ctx) {
+                                String binName, IndexType indexType, IndexCollectionType indexCollectionType,
+                                CTX... ctx) {
         Assert.notNull(entityClass, "Type must not be null!");
         Assert.notNull(indexName, "Index name must not be null!");
         Assert.notNull(binName, "Bin name must not be null!");
@@ -105,7 +125,7 @@ public class AerospikeTemplate extends BaseAerospikeTemplate implements Aerospik
         try {
             String setName = getSetName(entityClass);
             IndexTask task = client.createIndex(null, this.namespace,
-                    setName, indexName, binName, indexType, indexCollectionType, ctx);
+                setName, indexName, binName, indexType, indexCollectionType, ctx);
             if (task != null) {
                 task.waitTillComplete();
             }
@@ -135,7 +155,8 @@ public class AerospikeTemplate extends BaseAerospikeTemplate implements Aerospik
     @Override
     public boolean indexExists(String indexName) {
         Assert.notNull(indexName, "Index name must not be null!");
-        log.warn("`indexExists` operation is deprecated. Please stop using it as it will be removed in next major release.");
+        log.warn("`indexExists` operation is deprecated. Please stop using it as it will be removed " +
+            "in next major release.");
 
         try {
             Node[] nodes = client.getNodes();
@@ -190,9 +211,12 @@ public class AerospikeTemplate extends BaseAerospikeTemplate implements Aerospik
         WritePolicy policy = ignoreGenerationSavePolicy(data, RecordExistsAction.CREATE_ONLY);
         AerospikePersistentEntity<?> entity = mappingContext.getRequiredPersistentEntity(document.getClass());
         if (entity.hasVersionProperty()) {
-            // we are ignoring generation here as insert operation should fail with DuplicateKeyException if key already exists
-            // we do not mind which initial version is set in the document, BUT we need to update the version value in the original document
-            // also we do not want to handle aerospike error codes as cas aware error codes as we are ignoring generation
+            // we are ignoring generation here as insert operation should fail with DuplicateKeyException if key
+            // already exists
+            // we do not mind which initial version is set in the document, BUT we need to update the version value
+            // in the original document
+            // also we do not want to handle aerospike error codes as cas aware error codes as we are ignoring
+            // generation
             doPersistWithVersionAndHandleError(document, data, policy);
         } else {
             doPersistAndHandleError(data, policy);
@@ -294,7 +318,7 @@ public class AerospikeTemplate extends BaseAerospikeTemplate implements Aerospik
     public <T> Stream<T> findAll(Class<T> entityClass) {
         Assert.notNull(entityClass, "Type must not be null!");
 
-        return (Stream<T>) findAllUsingQuery(entityClass, null, null, (Qualifier[])null);
+        return (Stream<T>) findAllUsingQuery(entityClass, null, null, (Qualifier[]) null);
     }
 
     @SuppressWarnings("unchecked")
@@ -303,7 +327,7 @@ public class AerospikeTemplate extends BaseAerospikeTemplate implements Aerospik
         Assert.notNull(entityClass, "Type must not be null!");
         Assert.notNull(targetClass, "Target type must not be null!");
 
-        return (Stream<S>) findAllUsingQuery(entityClass, targetClass, null, (Qualifier[])null);
+        return (Stream<S>) findAllUsingQuery(entityClass, targetClass, null, (Qualifier[]) null);
     }
 
     @SuppressWarnings("unchecked")
@@ -335,8 +359,7 @@ public class AerospikeTemplate extends BaseAerospikeTemplate implements Aerospik
             } else {
                 return getRecordMapToEntityClass(entity, key, entityClass);
             }
-        }
-        catch (AerospikeException e) {
+        } catch (AerospikeException e) {
             throw translateError(e);
         }
     }
@@ -366,8 +389,8 @@ public class AerospikeTemplate extends BaseAerospikeTemplate implements Aerospik
 
     private Record getAndTouch(Key key, int expiration, String[] binNames) {
         WritePolicy writePolicy = WritePolicyBuilder.builder(client.getWritePolicyDefault())
-                .expiration(expiration)
-                .build();
+            .expiration(expiration)
+            .build();
 
         try {
             if (binNames == null || binNames.length == 0) {
@@ -395,7 +418,7 @@ public class AerospikeTemplate extends BaseAerospikeTemplate implements Aerospik
         List<String> binNamesList = new ArrayList<>();
 
         targetEntity.doWithProperties((PropertyHandler<AerospikePersistentProperty>) property
-                -> binNamesList.add(property.getFieldName()));
+            -> binNamesList.add(property.getFieldName()));
 
         return binNamesList.toArray(new String[0]);
     }
@@ -428,24 +451,24 @@ public class AerospikeTemplate extends BaseAerospikeTemplate implements Aerospik
             AerospikePersistentEntity<?> entity = mappingContext.getRequiredPersistentEntity(entityClass);
 
             Key[] keys = ids.stream()
-                    .map(id -> getKey(id, entity))
-                    .toArray(Key[]::new);
+                .map(id -> getKey(id, entity))
+                .toArray(Key[]::new);
 
             if (targetClass != null) {
                 String[] binNames = getBinNamesFromTargetClass(targetClass);
                 Record[] aeroRecords = client.get(null, keys, binNames);
 
                 return IntStream.range(0, keys.length)
-                        .filter(index -> aeroRecords[index] != null)
-                        .mapToObj(index -> mapToEntity(keys[index], targetClass, aeroRecords[index]))
-                        .collect(Collectors.toList());
+                    .filter(index -> aeroRecords[index] != null)
+                    .mapToObj(index -> mapToEntity(keys[index], targetClass, aeroRecords[index]))
+                    .collect(Collectors.toList());
             } else {
                 Record[] aeroRecords = client.get(null, keys);
 
                 return IntStream.range(0, keys.length)
-                        .filter(index -> aeroRecords[index] != null)
-                        .mapToObj(index -> mapToEntity(keys[index], entityClass, aeroRecords[index]))
-                        .collect(Collectors.toList());
+                    .filter(index -> aeroRecords[index] != null)
+                    .mapToObj(index -> mapToEntity(keys[index], entityClass, aeroRecords[index]))
+                    .collect(Collectors.toList());
             }
         } catch (AerospikeException e) {
             throw translateError(e);
@@ -472,7 +495,7 @@ public class AerospikeTemplate extends BaseAerospikeTemplate implements Aerospik
 
     @Override
     public <T> ResultSet aggregate(Filter filter, Class<T> entityClass,
-            String module, String function, List<Value> arguments) {
+                                   String module, String function, List<Value> arguments) {
         Assert.notNull(entityClass, "Type must not be null!");
 
         AerospikePersistentEntity<?> entity = mappingContext.getRequiredPersistentEntity(entityClass);
@@ -485,7 +508,7 @@ public class AerospikeTemplate extends BaseAerospikeTemplate implements Aerospik
         ResultSet resultSet;
         if (arguments != null && arguments.size() > 0)
             resultSet = this.client.queryAggregate(null, statement, module,
-                    function, arguments.toArray(new Value[0]));
+                function, arguments.toArray(new Value[0]));
         else
             resultSet = this.client.queryAggregate(null, statement);
         return resultSet;
@@ -497,7 +520,7 @@ public class AerospikeTemplate extends BaseAerospikeTemplate implements Aerospik
         Assert.notNull(entityClass, "Type must not be null!");
 
         return (Stream<T>) findAllUsingQueryWithPostProcessing(entityClass, null, sort, offset, limit,
-                null, (Qualifier[])null);
+            null, (Qualifier[]) null);
     }
 
     @SuppressWarnings("unchecked")
@@ -507,7 +530,7 @@ public class AerospikeTemplate extends BaseAerospikeTemplate implements Aerospik
         Assert.notNull(targetClass, "Target type must not be null!");
 
         return (Stream<S>) findAllUsingQueryWithPostProcessing(entityClass, targetClass, sort, offset, limit,
-                null, (Qualifier[])null);
+            null, (Qualifier[]) null);
     }
 
     public <T> boolean exists(Query query, Class<T> entityClass) {
@@ -562,7 +585,7 @@ public class AerospikeTemplate extends BaseAerospikeTemplate implements Aerospik
         Assert.notNull(entityClass, "Type for count must not be null!");
 
         return (Stream<T>) findAllUsingQueryWithPostProcessing(entityClass, null, sort, offset, limit,
-                null, (Qualifier[]) null);
+            null, (Qualifier[]) null);
     }
 
     @SuppressWarnings("unchecked")
@@ -573,7 +596,7 @@ public class AerospikeTemplate extends BaseAerospikeTemplate implements Aerospik
         Assert.notNull(targetClass, "Target type must not be null!");
 
         return (Stream<S>) findAllUsingQueryWithPostProcessing(entityClass, targetClass, sort, offset, limit,
-                null, (Qualifier[]) null);
+            null, (Qualifier[]) null);
     }
 
     @Override
@@ -599,8 +622,8 @@ public class AerospikeTemplate extends BaseAerospikeTemplate implements Aerospik
             int replicationFactor = Utils.getReplicationFactor(nodes, namespace);
 
             long totalObjects = Arrays.stream(nodes)
-                    .mapToLong(node -> Utils.getObjectsCount(node, namespace, setName))
-                    .sum();
+                .mapToLong(node -> Utils.getObjectsCount(node, namespace, setName))
+                .sum();
 
             return (nodes.length > 1) ? (totalObjects / replicationFactor) : totalObjects;
         } catch (AerospikeException e) {
@@ -615,8 +638,8 @@ public class AerospikeTemplate extends BaseAerospikeTemplate implements Aerospik
         try {
             AerospikeWriteData data = writeData(document);
             Record aeroRecord = this.client.operate(null, data.getKey(),
-                    Operation.prepend(new Bin(fieldName, value)),
-                    Operation.get(fieldName));
+                Operation.prepend(new Bin(fieldName, value)),
+                Operation.get(fieldName));
 
             return mapToEntity(data.getKey(), getEntityClass(document), aeroRecord);
         } catch (AerospikeException e) {
@@ -635,8 +658,7 @@ public class AerospikeTemplate extends BaseAerospikeTemplate implements Aerospik
             Record aeroRecord = this.client.operate(null, data.getKey(), ops);
 
             return mapToEntity(data.getKey(), getEntityClass(document), aeroRecord);
-        }
-        catch (AerospikeException e) {
+        } catch (AerospikeException e) {
             throw translateError(e);
         }
     }
@@ -652,8 +674,7 @@ public class AerospikeTemplate extends BaseAerospikeTemplate implements Aerospik
             Record aeroRecord = this.client.operate(null, data.getKey(), ops);
 
             return mapToEntity(data.getKey(), getEntityClass(document), aeroRecord);
-        }
-        catch (AerospikeException e) {
+        } catch (AerospikeException e) {
             throw translateError(e);
         }
     }
@@ -663,11 +684,10 @@ public class AerospikeTemplate extends BaseAerospikeTemplate implements Aerospik
         Assert.notNull(document, "Document must not be null!");
 
         try {
-
             AerospikeWriteData data = writeData(document);
             Record aeroRecord = this.client.operate(null, data.getKey(),
-                    Operation.append(new Bin(binName, value)),
-                    Operation.get(binName));
+                Operation.append(new Bin(binName, value)),
+                Operation.get(binName));
 
             return mapToEntity(data.getKey(), getEntityClass(document), aeroRecord);
         } catch (AerospikeException e) {
@@ -685,8 +705,8 @@ public class AerospikeTemplate extends BaseAerospikeTemplate implements Aerospik
             Operation[] ops = operations(values, Operation.Type.ADD, Operation.get());
 
             WritePolicy writePolicy = WritePolicyBuilder.builder(client.getWritePolicyDefault())
-                    .expiration(data.getExpiration())
-                    .build();
+                .expiration(data.getExpiration())
+                .build();
 
             Record aeroRecord = this.client.operate(writePolicy, data.getKey(), ops);
 
@@ -705,11 +725,11 @@ public class AerospikeTemplate extends BaseAerospikeTemplate implements Aerospik
             AerospikeWriteData data = writeData(document);
 
             WritePolicy writePolicy = WritePolicyBuilder.builder(client.getWritePolicyDefault())
-                    .expiration(data.getExpiration())
-                    .build();
+                .expiration(data.getExpiration())
+                .build();
 
             Record aeroRecord = this.client.operate(writePolicy, data.getKey(),
-                    Operation.add(new Bin(binName, value)), Operation.get());
+                Operation.add(new Bin(binName, value)), Operation.get());
 
             return mapToEntity(data.getKey(), getEntityClass(document), aeroRecord);
         } catch (AerospikeException e) {
@@ -755,7 +775,8 @@ public class AerospikeTemplate extends BaseAerospikeTemplate implements Aerospik
         Bin[] bins = data.getBinsAsArray();
 
         if (bins.length == 0) {
-            throw new AerospikeException("Cannot put and get header on a document with no bins and \"@_class\" bin disabled.");
+            throw new AerospikeException(
+                "Cannot put and get header on a document with no bins and \"@_class\" bin disabled.");
         }
 
         Operation[] operations = operations(bins, Operation::put, Operation.getHeader());
@@ -770,8 +791,10 @@ public class AerospikeTemplate extends BaseAerospikeTemplate implements Aerospik
         return applyPostProcessingOnResults(results, query);
     }
 
+    @SuppressWarnings("SameParameterValue")
     <T, S> Stream<?> findAllUsingQueryWithPostProcessing(Class<T> entityClass, Class<S> targetClass, Sort sort,
-                                                         long offset, long limit, Filter filter, Qualifier... qualifiers) {
+                                                         long offset, long limit, Filter filter,
+                                                         Qualifier... qualifiers) {
         verifyUnsortedWithOffset(sort, offset);
         Stream<?> results = findAllUsingQuery(entityClass, targetClass, filter, qualifiers);
         return applyPostProcessingOnResults(results, sort, offset, limit);
@@ -779,20 +802,21 @@ public class AerospikeTemplate extends BaseAerospikeTemplate implements Aerospik
 
     private void verifyUnsortedWithOffset(Sort sort, long offset) {
         if ((sort == null || sort.isUnsorted())
-                && offset > 0) {
+            && offset > 0) {
             throw new IllegalArgumentException("Unsorted query must not have offset value. " +
-                    "For retrieving paged results use sorted query.");
+                "For retrieving paged results use sorted query.");
         }
     }
 
-    <T, S> Stream<?> findAllUsingQuery(Class<T> entityClass, Class<S> targetClass, Filter filter, Qualifier... qualifiers) {
+    <T, S> Stream<?> findAllUsingQuery(Class<T> entityClass, Class<S> targetClass, Filter filter,
+                                       Qualifier... qualifiers) {
         return findAllRecordsUsingQuery(entityClass, targetClass, filter, qualifiers)
-                .map(keyRecord -> {
-                    if (targetClass != null) {
-                        return mapToEntity(keyRecord.key, targetClass, keyRecord.record);
-                    }
-                    return mapToEntity(keyRecord.key, entityClass, keyRecord.record);
-                });
+            .map(keyRecord -> {
+                if (targetClass != null) {
+                    return mapToEntity(keyRecord.key, targetClass, keyRecord.record);
+                }
+                return mapToEntity(keyRecord.key, entityClass, keyRecord.record);
+            });
     }
 
     private <T> Stream<T> applyPostProcessingOnResults(Stream<T> results, Query query) {
@@ -834,7 +858,8 @@ public class AerospikeTemplate extends BaseAerospikeTemplate implements Aerospik
         return findAllRecordsUsingQuery(entityClass, null, null, qualifier);
     }
 
-    <T, S> Stream<KeyRecord> findAllRecordsUsingQuery(Class<T> entityClass, Class<S> targetClass, Filter filter, Qualifier... qualifiers) {
+    <T, S> Stream<KeyRecord> findAllRecordsUsingQuery(Class<T> entityClass, Class<S> targetClass, Filter filter,
+                                                      Qualifier... qualifiers) {
         String setName = getSetName(entityClass);
 
         KeyRecordIterator recIterator;
@@ -847,12 +872,12 @@ public class AerospikeTemplate extends BaseAerospikeTemplate implements Aerospik
         }
 
         return StreamUtils.createStreamFromIterator(recIterator)
-                .onClose(() -> {
-                    try {
-                        recIterator.close();
-                    } catch (Exception e) {
-                        log.error("Caught exception while closing query", e);
-                    }
-                });
+            .onClose(() -> {
+                try {
+                    recIterator.close();
+                } catch (Exception e) {
+                    log.error("Caught exception while closing query", e);
+                }
+            });
     }
 }

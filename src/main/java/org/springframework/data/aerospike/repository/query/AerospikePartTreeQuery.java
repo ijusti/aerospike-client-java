@@ -42,7 +42,7 @@ public class AerospikePartTreeQuery extends BaseAerospikePartTreeQuery {
     }
 
     @Override
-    @SuppressWarnings({"unchecked", "rawtypes"})
+    @SuppressWarnings({"unchecked", "rawtypes", "NullableProblems"})
     public Object execute(Object[] parameters) {
         ParametersParameterAccessor accessor = new ParametersParameterAccessor(queryMethod.getParameters(), parameters);
         Query query = prepareQuery(parameters, accessor);
@@ -51,8 +51,9 @@ public class AerospikePartTreeQuery extends BaseAerospikePartTreeQuery {
 
         if (queryMethod.isPageQuery() || queryMethod.isSliceQuery()) {
             Stream<?> result = findByQuery(query, targetClass);
-            long total = queryMethod.isSliceQuery() ? 0 : aerospikeOperations.count(query, queryMethod.getEntityInformation().getJavaType());
-            //TODO: should return SliceImpl for slice query
+            long total = queryMethod.isSliceQuery() ? 0 :
+                aerospikeOperations.count(query, queryMethod.getEntityInformation().getJavaType());
+            // TODO: should return SliceImpl for slice query
             return new PageImpl(result.collect(Collectors.toList()), accessor.getPageable(), total);
         } else if (queryMethod.isStreamQuery()) {
             return findByQuery(query, targetClass);

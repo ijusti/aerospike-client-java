@@ -19,49 +19,53 @@ package org.springframework.data.aerospike.query;
 import com.aerospike.client.Key;
 import com.aerospike.client.Value;
 
+import java.io.Serial;
+
 /**
  * Qualifier used to query by primary key
  *
  * @author peter
  */
 public class KeyQualifier extends Qualifier {
-	private static final long serialVersionUID = 2430949321378171078L;
 
-	boolean hasDigest = false;
+    @Serial
+    private static final long serialVersionUID = 2430949321378171078L;
 
-	public KeyQualifier(Value value) {
-		super(new QualifierBuilder()
-				.setField(QueryEngine.Meta.KEY.toString())
-				.setFilterOperation(FilterOperation.EQ)
-				.setValue1(value)
-		);
-	}
+    boolean hasDigest = false;
 
-	public KeyQualifier(byte[] digest) {
-		super(new QualifierBuilder()
-				.setField(QueryEngine.Meta.KEY.toString())
-				.setFilterOperation(FilterOperation.EQ)
-				.setValue1(null)
-		);
-		this.internalMap.put("digest", digest);
-		this.hasDigest = true;
-	}
+    public KeyQualifier(Value value) {
+        super(new QualifierBuilder()
+            .setField(QueryEngine.Meta.KEY.toString())
+            .setFilterOperation(FilterOperation.EQ)
+            .setValue1(value)
+        );
+    }
 
-	@Override
-	protected String luaFieldString(String field) {
-		return "digest";
-	}
+    public KeyQualifier(byte[] digest) {
+        super(new QualifierBuilder()
+            .setField(QueryEngine.Meta.KEY.toString())
+            .setFilterOperation(FilterOperation.EQ)
+            .setValue1(null)
+        );
+        this.internalMap.put("digest", digest);
+        this.hasDigest = true;
+    }
 
-	public byte[] getDigest() {
-		return (byte[]) this.internalMap.get("digest");
-	}
+    @Override
+    protected String luaFieldString(String field) {
+        return "digest";
+    }
 
-	public Key makeKey(String namespace, String set) {
-		if (hasDigest) {
-			byte[] digest = getDigest();
-			return new Key(namespace, digest, set, null);
-		} else {
-			return new Key(namespace, set, getValue1());
-		}
-	}
+    public byte[] getDigest() {
+        return (byte[]) this.internalMap.get("digest");
+    }
+
+    public Key makeKey(String namespace, String set) {
+        if (hasDigest) {
+            byte[] digest = getDigest();
+            return new Key(namespace, digest, set, null);
+        } else {
+            return new Key(namespace, set, getValue1());
+        }
+    }
 }

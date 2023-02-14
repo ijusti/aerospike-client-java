@@ -13,8 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-
 package org.springframework.data.aerospike.index;
 
 import lombok.extern.slf4j.Slf4j;
@@ -51,10 +49,11 @@ public class AerospikePersistenceEntityIndexCreator extends BaseAerospikePersist
         try {
             // TODO: add ctx (@Indexed with ctx support)
             template.createIndex(index.getEntityClass(), index.getName(),
-                    index.getFieldName(), index.getType(), index.getCollectionType());
+                index.getFieldName(), index.getType(), index.getCollectionType());
             log.info("Installed aerospike index: {} successfully.", index);
         } catch (IndexAlreadyExistsException e) {
-            log.info("Skipping index [{}] creation. Index with the same name already exists. {}", index, e.getMessage());
+            log.info("Skipping index [{}] creation. Index with the same name already exists. {}", index,
+                e.getMessage());
         } catch (Exception e) {
             throw new IllegalStateException("Failed to install aerospike index: " + index, e);
         }

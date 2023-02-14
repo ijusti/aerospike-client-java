@@ -34,7 +34,11 @@ import org.springframework.data.aerospike.convert.AerospikeWriteData;
 import org.springframework.data.aerospike.convert.MappingAerospikeConverter;
 import org.springframework.data.aerospike.core.model.GroupedEntities;
 import org.springframework.data.aerospike.core.model.GroupedKeys;
-import org.springframework.data.aerospike.mapping.*;
+import org.springframework.data.aerospike.mapping.AerospikeMappingContext;
+import org.springframework.data.aerospike.mapping.AerospikePersistentEntity;
+import org.springframework.data.aerospike.mapping.AerospikePersistentProperty;
+import org.springframework.data.aerospike.mapping.BasicAerospikePersistentEntity;
+import org.springframework.data.aerospike.mapping.Field;
 import org.springframework.data.aerospike.repository.query.Query;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.keyvalue.core.IterableConverter;
@@ -132,16 +136,16 @@ abstract class BaseAerospikeTemplate {
 
     protected <T> Comparator<T> getComparator(Query query) {
         return query.getSort().stream()
-                .map(this::<T>getPropertyComparator)
-                .reduce(Comparator::thenComparing)
-                .orElseThrow(() -> new IllegalStateException("Comparator can not be created if sort orders are empty"));
+            .map(this::<T>getPropertyComparator)
+            .reduce(Comparator::thenComparing)
+            .orElseThrow(() -> new IllegalStateException("Comparator can not be created if sort orders are empty"));
     }
 
     protected <T> Comparator<T> getComparator(Sort sort) {
         return sort.stream()
-                .map(this::<T>getPropertyComparator)
-                .reduce(Comparator::thenComparing)
-                .orElseThrow(() -> new IllegalStateException("Comparator can not be created if sort orders are empty"));
+            .map(this::<T>getPropertyComparator)
+            .reduce(Comparator::thenComparing)
+            .orElseThrow(() -> new IllegalStateException("Comparator can not be created if sort orders are empty"));
     }
 
     private <T> Comparator<T> getPropertyComparator(Sort.Order order) {
@@ -191,33 +195,34 @@ abstract class BaseAerospikeTemplate {
 
     WritePolicy expectGenerationCasAwareSavePolicy(AerospikeWriteData data) {
         RecordExistsAction recordExistsAction = data.getVersion()
-                .filter(v -> v > 0L)
-                .map(v -> RecordExistsAction.REPLACE_ONLY)//Updating existing document with generation
-                .orElse(RecordExistsAction.CREATE_ONLY);// create new document. if exists we should fail with optimistic locking
+            .filter(v -> v > 0L)
+            .map(v -> RecordExistsAction.REPLACE_ONLY)//Updating existing document with generation
+            .orElse(
+                RecordExistsAction.CREATE_ONLY);// create new document. if exists we should fail with optimistic locking
         return expectGenerationSavePolicy(data, recordExistsAction);
     }
 
     WritePolicy expectGenerationSavePolicy(AerospikeWriteData data, RecordExistsAction recordExistsAction) {
         return WritePolicyBuilder.builder(this.writePolicyDefault)
-                .generationPolicy(GenerationPolicy.EXPECT_GEN_EQUAL)
-                .generation(data.getVersion().orElse(0))
-                .expiration(data.getExpiration())
-                .recordExistsAction(recordExistsAction)
-                .build();
+            .generationPolicy(GenerationPolicy.EXPECT_GEN_EQUAL)
+            .generation(data.getVersion().orElse(0))
+            .expiration(data.getExpiration())
+            .recordExistsAction(recordExistsAction)
+            .build();
     }
 
     WritePolicy ignoreGenerationSavePolicy(AerospikeWriteData data, RecordExistsAction recordExistsAction) {
         return WritePolicyBuilder.builder(this.writePolicyDefault)
-                .generationPolicy(GenerationPolicy.NONE)
-                .expiration(data.getExpiration())
-                .recordExistsAction(recordExistsAction)
-                .build();
+            .generationPolicy(GenerationPolicy.NONE)
+            .expiration(data.getExpiration())
+            .recordExistsAction(recordExistsAction)
+            .build();
     }
 
     WritePolicy ignoreGenerationDeletePolicy() {
         return WritePolicyBuilder.builder(this.writePolicyDefault)
-                .generationPolicy(GenerationPolicy.NONE)
-                .build();
+            .generationPolicy(GenerationPolicy.NONE)
+            .build();
     }
 
     Key getKey(Object id, AerospikePersistentEntity<?> entity) {
@@ -230,36 +235,37 @@ abstract class BaseAerospikeTemplate {
         GroupedEntities.GroupedEntitiesBuilder builder = GroupedEntities.builder();
 
         IntStream.range(0, entitiesKeys.getKeys().length)
-                .filter(index -> records[index] != null)
-                .mapToObj(index -> mapToEntity(entitiesKeys.getKeys()[index], entitiesKeys.getEntityClasses()[index], records[index]))
-                .filter(Objects::nonNull)
-                .forEach(entity -> builder.entity(getEntityClass(entity), entity));
+            .filter(index -> records[index] != null)
+            .mapToObj(index -> mapToEntity(entitiesKeys.getKeys()[index], entitiesKeys.getEntityClasses()[index],
+                records[index]))
+            .filter(Objects::nonNull)
+            .forEach(entity -> builder.entity(getEntityClass(entity), entity));
 
         return builder.build();
     }
 
     Map<Class<?>, List<Key>> toEntitiesKeyMap(GroupedKeys groupedKeys) {
         return groupedKeys.getEntitiesKeys().entrySet().stream()
-                .collect(Collectors.toMap(Map.Entry::getKey, entry -> toKeysList(entry.getKey(), entry.getValue())));
+            .collect(Collectors.toMap(Map.Entry::getKey, entry -> toKeysList(entry.getKey(), entry.getValue())));
     }
 
     private <T> List<String> fieldsToBinNames(T document, Collection<String> fields) {
         AerospikePersistentEntity<?> entity = mappingContext.getRequiredPersistentEntity(document.getClass());
 
         return fields.stream()
-                .map(field -> {
-                    // Field is a class member of document class.
-                    if (entity.getPersistentProperty(field) != null) {
-                        return Objects.requireNonNull(entity.getPersistentProperty(field)).getFieldName();
-                    }
-                    // Field is a @Field annotated value (already a bin name).
-                    if (getFieldAnnotatedValue(entity, field) != null) {
-                        return field;
-                    }
-                    throw translateError(new AerospikeException("Cannot convert field: " + field +
-                            " to bin name. field doesn't exists."));
-                })
-                .collect(Collectors.toList());
+            .map(field -> {
+                // Field is a class member of document class.
+                if (entity.getPersistentProperty(field) != null) {
+                    return Objects.requireNonNull(entity.getPersistentProperty(field)).getFieldName();
+                }
+                // Field is a @Field annotated value (already a bin name).
+                if (getFieldAnnotatedValue(entity, field) != null) {
+                    return field;
+                }
+                throw translateError(new AerospikeException("Cannot convert field: " + field +
+                    " to bin name. field doesn't exists."));
+            })
+            .collect(Collectors.toList());
     }
 
     private String getFieldAnnotatedValue(AerospikePersistentEntity<?> entity, String field) {
@@ -279,12 +285,13 @@ abstract class BaseAerospikeTemplate {
         List<?> idsList = IterableConverter.toList(ids);
 
         return idsList.stream()
-                .map(id -> getKey(id, entity))
-                .collect(Collectors.toList());
+            .map(id -> getKey(id, entity))
+            .collect(Collectors.toList());
     }
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"unchecked", "SameParameterValue"})
     private <S> S convertIfNecessary(Object source, Class<S> type) {
-        return type.isAssignableFrom(source.getClass()) ? (S) source : converter.getConversionService().convert(source, type);
+        return type.isAssignableFrom(source.getClass()) ? (S) source
+            : converter.getConversionService().convert(source, type);
     }
 }

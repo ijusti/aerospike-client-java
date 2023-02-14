@@ -37,8 +37,8 @@ public class BlockingTestConfig extends AbstractAerospikeDataConfiguration {
     @Override
     protected List<?> customConverters() {
         return Arrays.asList(
-                SampleClasses.CompositeKey.CompositeKeyToStringConverter.INSTANCE,
-                SampleClasses.CompositeKey.StringToCompositeKeyConverter.INSTANCE
+            SampleClasses.CompositeKey.CompositeKeyToStringConverter.INSTANCE,
+            SampleClasses.CompositeKey.StringToCompositeKeyConverter.INSTANCE
         );
     }
 
@@ -59,8 +59,7 @@ public class BlockingTestConfig extends AbstractAerospikeDataConfiguration {
 
     @Override
     protected ClientPolicy getClientPolicy() {
-        // super.getClientPolicy() to apply default values first
-        ClientPolicy clientPolicy = super.getClientPolicy();
+        ClientPolicy clientPolicy = super.getClientPolicy(); // applying default values first
         clientPolicy.readPolicyDefault.maxRetries = 3;
         clientPolicy.writePolicyDefault.totalTimeout = 1000;
         clientPolicy.infoPolicyDefault.timeout = 1000;

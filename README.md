@@ -33,18 +33,18 @@ The documentation for this project can be found on [javadoc.io](https://www.java
 
 ## Spring Data Aerospike compatibility
 
-| Spring Data Aerospike | Spring Boot  | Aerospike Client | Aerospike Reactor Client | Aerospike Server
-|:----------------------|:-------------|:-----------------|:-------------------------| :-----------
-| 4.0.x                 | 3.0.x        | 6.1.x            | 6.1.x                    | 5.2.x.x +
-| 3.5.x                 | 2.7.x        | 6.1.x            | 6.1.x                    | 5.2.x.x +
-| 3.4.x                 | 2.6.x        | 5.1.x            | 5.1.x                    | 5.2.x.x +
-| 3.3.x                 | 2.5.x        | 5.1.x            | 5.1.x                    | 5.2.x.x +
-| 3.2.x                 | 2.5.x        | 5.1.x            | 5.0.x                    | 5.2.x.x +
-| 3.0.x, 3.1.x          | 2.5.x        | 5.1.x            | 5.0.x                    
-| 2.5.x                 | 2.5.x        | 4.4.x            | 4.4.x                    
-| 2.4.2.RELEASE         | 2.3.x        | 4.4.x            | 4.4.x                    
-| 2.3.5.RELEASE         | 2.2.x        | 4.4.x            | 4.4.x                    
-| 2.1.1.RELEASE         | 2.1.x, 2.0.x | 4.4.x            | 3.2.x                    
+| Spring Data Aerospike | Spring Boot  | Aerospike Client | Aerospike Reactor Client | Aerospike Server |
+|:----------------------|:-------------|:-----------------|:-------------------------|:-----------------|
+| 4.0.x                 | 3.0.x        | 6.1.x            | 6.1.x                    | 5.2.x.x +        |
+| 3.5.x                 | 2.7.x        | 6.1.x            | 6.1.x                    | 5.2.x.x +        |
+| 3.4.x                 | 2.6.x        | 5.1.x            | 5.1.x                    | 5.2.x.x +        |
+| 3.3.x                 | 2.5.x        | 5.1.x            | 5.1.x                    | 5.2.x.x +        |
+| 3.2.x                 | 2.5.x        | 5.1.x            | 5.0.x                    | 5.2.x.x +        |
+| 3.0.x, 3.1.x          | 2.5.x        | 5.1.x            | 5.0.x                    |
+| 2.5.x                 | 2.5.x        | 4.4.x            | 4.4.x                    |
+| 2.4.2.RELEASE         | 2.3.x        | 4.4.x            | 4.4.x                    |
+| 2.3.5.RELEASE         | 2.2.x        | 4.4.x            | 4.4.x                    |
+| 2.1.1.RELEASE         | 2.1.x, 2.0.x | 4.4.x            | 3.2.x                    |
 | 1.2.1.RELEASE         | 1.5.x        | 4.1.x            | 
 
 ## Quick Start
@@ -78,7 +78,7 @@ Dependency will be provided for you by `spring-data-aerospike`, so no need to de
 * Basic POJO mapping support to and from Bins
 * Convenience methods to interact with the store (insert object, update objects) and Aerospike specific ones.
 * Connection affinity callback
-* Exception translation into Spring's [technology agnostic DAO exception hierarchy](https://docs.spring.io/spring/docs/current/spring-framework-reference/html/dao.html#dao-exceptions).
+* Exception translation into Spring's [technology-agnostic DAO exception hierarchy](https://docs.spring.io/spring/docs/current/spring-framework-reference/html/dao.html#dao-exceptions).
 
 ### Spring Data repositories
 

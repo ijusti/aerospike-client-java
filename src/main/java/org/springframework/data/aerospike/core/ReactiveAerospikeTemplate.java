@@ -15,8 +15,12 @@
  */
 package org.springframework.data.aerospike.core;
 
+import com.aerospike.client.AerospikeException;
+import com.aerospike.client.Bin;
+import com.aerospike.client.Key;
+import com.aerospike.client.Operation;
 import com.aerospike.client.Record;
-import com.aerospike.client.*;
+import com.aerospike.client.Value;
 import com.aerospike.client.cdt.CTX;
 import com.aerospike.client.cluster.Node;
 import com.aerospike.client.policy.RecordExistsAction;
@@ -45,7 +49,13 @@ import org.springframework.util.Assert;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.function.Supplier;
 
 import static com.aerospike.client.ResultCode.KEY_NOT_FOUND_ERROR;
@@ -99,7 +109,7 @@ public class ReactiveAerospikeTemplate extends BaseAerospikeTemplate implements 
     @Override
     public <T> Flux<T> insertAll(Collection<? extends T> documents) {
         return Flux.fromIterable(documents)
-                .flatMap(this::insert);
+            .flatMap(this::insert);
     }
 
     @Override
@@ -111,9 +121,12 @@ public class ReactiveAerospikeTemplate extends BaseAerospikeTemplate implements 
 
         AerospikePersistentEntity<?> entity = mappingContext.getRequiredPersistentEntity(document.getClass());
         if (entity.hasVersionProperty()) {
-            // we are ignoring generation here as insert operation should fail with DuplicateKeyException if key already exists,
-            // and we do not mind which initial version is set in the document, BUT we need to update the version value in the original document
-            // also we do not want to handle aerospike error codes as cas aware error codes as we are ignoring generation
+            // we are ignoring generation here as insert operation should fail with DuplicateKeyException if key
+            // already exists,
+            // and we do not mind which initial version is set in the document, BUT we need to update the version
+            // value in the original document
+            // also we do not want to handle aerospike error codes as cas aware error codes as we are ignoring
+            // generation
             return doPersistWithVersionAndHandleError(document, data, policy);
         } else {
             return doPersistAndHandleError(document, data, policy);
@@ -177,7 +190,7 @@ public class ReactiveAerospikeTemplate extends BaseAerospikeTemplate implements 
         Assert.notNull(entityClass, "Type must not be null!");
 
         return (Flux<T>) findAllUsingQueryWithPostProcessing(entityClass, null, sort, offset, limit,
-                null, (Qualifier[]) null);
+            null, (Qualifier[]) null);
     }
 
     @SuppressWarnings("unchecked")
@@ -187,7 +200,7 @@ public class ReactiveAerospikeTemplate extends BaseAerospikeTemplate implements 
         Assert.notNull(targetClass, "Target type must not be null!");
 
         return (Flux<S>) findAllUsingQueryWithPostProcessing(entityClass, targetClass, sort, offset, limit,
-                null, (Qualifier[])null);
+            null, (Qualifier[]) null);
     }
 
     @Override
@@ -206,8 +219,8 @@ public class ReactiveAerospikeTemplate extends BaseAerospikeTemplate implements 
         operations[x] = Operation.get();
 
         WritePolicy writePolicy = WritePolicyBuilder.builder(this.writePolicyDefault)
-                .expiration(data.getExpiration())
-                .build();
+            .expiration(data.getExpiration())
+            .build();
 
         return executeOperationsOnValue(document, data, operations, writePolicy);
     }
@@ -220,8 +233,8 @@ public class ReactiveAerospikeTemplate extends BaseAerospikeTemplate implements 
         AerospikeWriteData data = writeData(document);
 
         WritePolicy writePolicy = WritePolicyBuilder.builder(this.writePolicyDefault)
-                .expiration(data.getExpiration())
-                .build();
+            .expiration(data.getExpiration())
+            .build();
 
         Operation[] operations = {Operation.add(new Bin(binName, value)), Operation.get(binName)};
         return executeOperationsOnValue(document, data, operations, writePolicy);
@@ -265,11 +278,12 @@ public class ReactiveAerospikeTemplate extends BaseAerospikeTemplate implements 
         return executeOperationsOnValue(document, data, operations, null);
     }
 
-    private <T> Mono<T> executeOperationsOnValue(T document, AerospikeWriteData data, Operation[] operations, WritePolicy writePolicy) {
+    private <T> Mono<T> executeOperationsOnValue(T document, AerospikeWriteData data, Operation[] operations,
+                                                 WritePolicy writePolicy) {
         return reactorClient.operate(writePolicy, data.getKey(), operations)
-                .filter(keyRecord -> Objects.nonNull(keyRecord.record))
-                .map(keyRecord -> mapToEntity(keyRecord.key, getEntityClass(document), keyRecord.record))
-                .onErrorMap(this::translateError);
+            .filter(keyRecord -> Objects.nonNull(keyRecord.record))
+            .map(keyRecord -> mapToEntity(keyRecord.key, getEntityClass(document), keyRecord.record))
+            .onErrorMap(this::translateError);
     }
 
     @Override
@@ -278,20 +292,22 @@ public class ReactiveAerospikeTemplate extends BaseAerospikeTemplate implements 
         Key key = getKey(id, entity);
 
         if (entity.isTouchOnRead()) {
-            Assert.state(!entity.hasExpirationProperty(), "Touch on read is not supported for entity without expiration property");
+            Assert.state(!entity.hasExpirationProperty(),
+                "Touch on read is not supported for entity without expiration property");
             return getAndTouch(key, entity.getExpiration(), null)
-                    .filter(keyRecord -> Objects.nonNull(keyRecord.record))
-                    .map(keyRecord -> mapToEntity(keyRecord.key, entityClass, keyRecord.record))
-                    .onErrorResume(
-                            th -> th instanceof AerospikeException && ((AerospikeException) th).getResultCode() == KEY_NOT_FOUND_ERROR,
-                            th -> Mono.empty()
-                    )
-                    .onErrorMap(this::translateError);
+                .filter(keyRecord -> Objects.nonNull(keyRecord.record))
+                .map(keyRecord -> mapToEntity(keyRecord.key, entityClass, keyRecord.record))
+                .onErrorResume(
+                    th -> th instanceof AerospikeException &&
+                        ((AerospikeException) th).getResultCode() == KEY_NOT_FOUND_ERROR,
+                    th -> Mono.empty()
+                )
+                .onErrorMap(this::translateError);
         } else {
             return reactorClient.get(key)
-                    .filter(keyRecord -> Objects.nonNull(keyRecord.record))
-                    .map(keyRecord -> mapToEntity(keyRecord.key, entityClass, keyRecord.record))
-                    .onErrorMap(this::translateError);
+                .filter(keyRecord -> Objects.nonNull(keyRecord.record))
+                .map(keyRecord -> mapToEntity(keyRecord.key, entityClass, keyRecord.record))
+                .onErrorMap(this::translateError);
         }
     }
 
@@ -303,20 +319,22 @@ public class ReactiveAerospikeTemplate extends BaseAerospikeTemplate implements 
         String[] binNames = getBinNamesFromTargetClass(targetClass);
 
         if (entity.isTouchOnRead()) {
-            Assert.state(!entity.hasExpirationProperty(), "Touch on read is not supported for entity without expiration property");
+            Assert.state(!entity.hasExpirationProperty(),
+                "Touch on read is not supported for entity without expiration property");
             return getAndTouch(key, entity.getExpiration(), binNames)
-                    .filter(keyRecord -> Objects.nonNull(keyRecord.record))
-                    .map(keyRecord -> mapToEntity(keyRecord.key, targetClass, keyRecord.record))
-                    .onErrorResume(
-                            th -> th instanceof AerospikeException && ((AerospikeException) th).getResultCode() == KEY_NOT_FOUND_ERROR,
-                            th -> Mono.empty()
-                    )
-                    .onErrorMap(this::translateError);
+                .filter(keyRecord -> Objects.nonNull(keyRecord.record))
+                .map(keyRecord -> mapToEntity(keyRecord.key, targetClass, keyRecord.record))
+                .onErrorResume(
+                    th -> th instanceof AerospikeException &&
+                        ((AerospikeException) th).getResultCode() == KEY_NOT_FOUND_ERROR,
+                    th -> Mono.empty()
+                )
+                .onErrorMap(this::translateError);
         } else {
             return reactorClient.get(null, key, binNames)
-                    .filter(keyRecord -> Objects.nonNull(keyRecord.record))
-                    .map(keyRecord -> mapToEntity(keyRecord.key, targetClass, keyRecord.record))
-                    .onErrorMap(this::translateError);
+                .filter(keyRecord -> Objects.nonNull(keyRecord.record))
+                .map(keyRecord -> mapToEntity(keyRecord.key, targetClass, keyRecord.record))
+                .onErrorMap(this::translateError);
         }
     }
 
@@ -328,10 +346,10 @@ public class ReactiveAerospikeTemplate extends BaseAerospikeTemplate implements 
         AerospikePersistentEntity<?> entity = mappingContext.getRequiredPersistentEntity(entityClass);
 
         return Flux.fromIterable(ids)
-                .map(id -> getKey(id, entity))
-                .flatMap(reactorClient::get)
-                .filter(keyRecord -> nonNull(keyRecord.record))
-                .map(keyRecord -> mapToEntity(keyRecord.key, entityClass, keyRecord.record));
+            .map(id -> getKey(id, entity))
+            .flatMap(reactorClient::get)
+            .filter(keyRecord -> nonNull(keyRecord.record))
+            .map(keyRecord -> mapToEntity(keyRecord.key, entityClass, keyRecord.record));
     }
 
     @Override
@@ -345,10 +363,10 @@ public class ReactiveAerospikeTemplate extends BaseAerospikeTemplate implements 
         String[] binNames = getBinNamesFromTargetClass(targetClass);
 
         return Flux.fromIterable(ids)
-                .map(id -> getKey(id, entity))
-                .flatMap(key -> reactorClient.get(null, key, binNames))
-                .filter(keyRecord -> nonNull(keyRecord.record))
-                .map(keyRecord -> mapToEntity(keyRecord.key, targetClass, keyRecord.record));
+            .map(id -> getKey(id, entity))
+            .flatMap(key -> reactorClient.get(null, key, binNames))
+            .filter(keyRecord -> nonNull(keyRecord.record))
+            .map(keyRecord -> mapToEntity(keyRecord.key, targetClass, keyRecord.record));
     }
 
     @Override
@@ -366,8 +384,8 @@ public class ReactiveAerospikeTemplate extends BaseAerospikeTemplate implements 
         EntitiesKeys entitiesKeys = EntitiesKeys.of(toEntitiesKeyMap(groupedKeys));
 
         return reactorClient.get(null, entitiesKeys.getKeys())
-                .map(item -> toGroupedEntities(entitiesKeys, item.records))
-                .onErrorMap(this::translateError);
+            .map(item -> toGroupedEntities(entitiesKeys, item.records))
+            .onErrorMap(this::translateError);
     }
 
     @SuppressWarnings("unchecked")
@@ -396,7 +414,7 @@ public class ReactiveAerospikeTemplate extends BaseAerospikeTemplate implements 
         Assert.notNull(entityClass, "Type must not be null!");
 
         return (Flux<T>) findAllUsingQueryWithPostProcessing(entityClass, null, sort, offset, limit,
-                null, (Qualifier[]) null);
+            null, (Qualifier[]) null);
     }
 
     @SuppressWarnings("unchecked")
@@ -407,7 +425,7 @@ public class ReactiveAerospikeTemplate extends BaseAerospikeTemplate implements 
         Assert.notNull(targetClass, "Target type must not be null!");
 
         return (Flux<S>) findAllUsingQueryWithPostProcessing(entityClass, targetClass, sort, offset, limit,
-                null, (Qualifier[]) null);
+            null, (Qualifier[]) null);
     }
 
     @Override
@@ -423,7 +441,7 @@ public class ReactiveAerospikeTemplate extends BaseAerospikeTemplate implements 
         Assert.notNull(setName, "Set for count must not be null!");
 
         try {
-             return Mono.fromCallable(() -> countSet(setName));
+            return Mono.fromCallable(() -> countSet(setName));
         } catch (AerospikeException e) {
             throw translateError(e);
         }
@@ -442,8 +460,8 @@ public class ReactiveAerospikeTemplate extends BaseAerospikeTemplate implements 
         int replicationFactor = Utils.getReplicationFactor(nodes, this.namespace);
 
         long totalObjects = Arrays.stream(nodes)
-                .mapToLong(node -> Utils.getObjectsCount(node, this.namespace, setName))
-                .sum();
+            .mapToLong(node -> Utils.getObjectsCount(node, this.namespace, setName))
+            .sum();
 
         return (nodes.length > 1) ? (totalObjects / replicationFactor) : totalObjects;
     }
@@ -453,7 +471,7 @@ public class ReactiveAerospikeTemplate extends BaseAerospikeTemplate implements 
         Assert.notNull(supplier, "Supplier must not be null!");
 
         return Mono.fromSupplier(supplier)
-                .onErrorMap(this::translateError);
+            .onErrorMap(this::translateError);
     }
 
     @Override
@@ -464,9 +482,9 @@ public class ReactiveAerospikeTemplate extends BaseAerospikeTemplate implements 
         AerospikePersistentEntity<?> entity = mappingContext.getRequiredPersistentEntity(entityClass);
         Key key = getKey(id, entity);
         return reactorClient.exists(key)
-                .map(Objects::nonNull)
-                .defaultIfEmpty(false)
-                .onErrorMap(this::translateError);
+            .map(Objects::nonNull)
+            .defaultIfEmpty(false)
+            .onErrorMap(this::translateError);
     }
 
     @Override
@@ -475,7 +493,8 @@ public class ReactiveAerospikeTemplate extends BaseAerospikeTemplate implements 
 
         try {
             String set = getSetName(entityClass);
-            return Mono.fromRunnable(() -> reactorClient.getAerospikeClient().truncate(null, this.namespace, set, null));
+            return Mono.fromRunnable(
+                () -> reactorClient.getAerospikeClient().truncate(null, this.namespace, set, null));
         } catch (AerospikeException e) {
             throw translateError(e);
         }
@@ -489,9 +508,9 @@ public class ReactiveAerospikeTemplate extends BaseAerospikeTemplate implements 
         AerospikePersistentEntity<?> entity = mappingContext.getRequiredPersistentEntity(entityClass);
 
         return reactorClient
-                .delete(ignoreGenerationDeletePolicy(), getKey(id, entity))
-                .map(k -> true)
-                .onErrorMap(this::translateError);
+            .delete(ignoreGenerationDeletePolicy(), getKey(id, entity))
+            .map(k -> true)
+            .onErrorMap(this::translateError);
     }
 
     @Override
@@ -501,14 +520,14 @@ public class ReactiveAerospikeTemplate extends BaseAerospikeTemplate implements 
         AerospikeWriteData data = writeData(document);
 
         return this.reactorClient
-                .delete(ignoreGenerationDeletePolicy(), data.getKey())
-                .map(key -> true)
-                .onErrorMap(this::translateError);
+            .delete(ignoreGenerationDeletePolicy(), data.getKey())
+            .map(key -> true)
+            .onErrorMap(this::translateError);
     }
 
     @Override
     public <T> Mono<Void> createIndex(Class<T> entityClass, String indexName,
-                                String binName, IndexType indexType) {
+                                      String binName, IndexType indexType) {
         return createIndex(entityClass, indexName, binName, indexType, IndexCollectionType.DEFAULT);
     }
 
@@ -531,9 +550,9 @@ public class ReactiveAerospikeTemplate extends BaseAerospikeTemplate implements 
 
         String setName = getSetName(entityClass);
         return reactorClient.createIndex(null, this.namespace,
-                        setName, indexName, binName, indexType, indexCollectionType, ctx)
-                .then(reactorIndexRefresher.refreshIndexes())
-                .onErrorMap(this::translateError);
+                setName, indexName, binName, indexType, indexCollectionType, ctx)
+            .then(reactorIndexRefresher.refreshIndexes())
+            .onErrorMap(this::translateError);
     }
 
     @Override
@@ -543,8 +562,8 @@ public class ReactiveAerospikeTemplate extends BaseAerospikeTemplate implements 
 
         String setName = getSetName(entityClass);
         return reactorClient.dropIndex(null, this.namespace, setName, indexName)
-                .then(reactorIndexRefresher.refreshIndexes())
-                .onErrorMap(this::translateError);
+            .then(reactorIndexRefresher.refreshIndexes())
+            .onErrorMap(this::translateError);
     }
 
     @Override
@@ -554,34 +573,34 @@ public class ReactiveAerospikeTemplate extends BaseAerospikeTemplate implements 
 
     private <T> Mono<T> doPersistAndHandleError(T document, AerospikeWriteData data, WritePolicy policy) {
         return reactorClient
-                .put(policy, data.getKey(), data.getBinsAsArray())
-                .map(docKey -> document)
-                .onErrorMap(this::translateError);
+            .put(policy, data.getKey(), data.getBinsAsArray())
+            .map(docKey -> document)
+            .onErrorMap(this::translateError);
     }
 
     private <T> Mono<T> doPersistWithVersionAndHandleCasError(T document, AerospikeWriteData data, WritePolicy policy) {
         return putAndGetHeader(data, policy)
-                .map(newRecord -> updateVersion(document, newRecord))
-                .onErrorMap(AerospikeException.class, this::translateCasError);
+            .map(newRecord -> updateVersion(document, newRecord))
+            .onErrorMap(AerospikeException.class, this::translateCasError);
     }
 
     private <T> Mono<T> doPersistWithVersionAndHandleError(T document, AerospikeWriteData data, WritePolicy policy) {
         return putAndGetHeader(data, policy)
-                .map(newRecord -> updateVersion(document, newRecord))
-                .onErrorMap(AerospikeException.class, this::translateError);
+            .map(newRecord -> updateVersion(document, newRecord))
+            .onErrorMap(AerospikeException.class, this::translateError);
     }
 
     private Mono<Record> putAndGetHeader(AerospikeWriteData data, WritePolicy policy) {
         Operation[] operations = operations(data.getBinsAsArray(), Operation::put, Operation.getHeader());
 
         return reactorClient.operate(policy, data.getKey(), operations)
-                .map(keyRecord -> keyRecord.record);
+            .map(keyRecord -> keyRecord.record);
     }
 
     private Mono<KeyRecord> getAndTouch(Key key, int expiration, String[] binNames) {
         WritePolicy writePolicy = WritePolicyBuilder.builder(this.writePolicyDefault)
-                .expiration(expiration)
-                .build();
+            .expiration(expiration)
+            .build();
         if (binNames == null || binNames.length == 0) {
             return reactorClient.operate(writePolicy, key, Operation.touch(), Operation.get());
         }
@@ -600,7 +619,7 @@ public class ReactiveAerospikeTemplate extends BaseAerospikeTemplate implements 
         List<String> binNamesList = new ArrayList<>();
 
         targetEntity.doWithProperties((PropertyHandler<AerospikePersistentProperty>) property
-                -> binNamesList.add(property.getFieldName()));
+            -> binNamesList.add(property.getFieldName()));
 
         return binNamesList.toArray(new String[0]);
     }
@@ -620,8 +639,10 @@ public class ReactiveAerospikeTemplate extends BaseAerospikeTemplate implements 
         return results;
     }
 
+    @SuppressWarnings("SameParameterValue")
     <T, S> Flux<?> findAllUsingQueryWithPostProcessing(Class<T> entityClass, Class<S> targetClass, Sort sort,
-                                                       long offset, long limit, Filter filter, Qualifier... qualifiers) {
+                                                       long offset, long limit, Filter filter,
+                                                       Qualifier... qualifiers) {
         verifyUnsortedWithOffset(sort, offset);
         Flux<?> results = findAllUsingQuery(entityClass, targetClass, filter, qualifiers);
         results = applyPostProcessingOnResults(results, sort, offset, limit);
@@ -630,9 +651,9 @@ public class ReactiveAerospikeTemplate extends BaseAerospikeTemplate implements 
 
     private void verifyUnsortedWithOffset(Sort sort, long offset) {
         if ((sort == null || sort.isUnsorted())
-                && offset > 0) {
+            && offset > 0) {
             throw new IllegalArgumentException("Unsorted query must not have offset value. " +
-                    "For retrieving paged results use sorted query.");
+                "For retrieving paged results use sorted query.");
         }
     }
 
@@ -667,13 +688,14 @@ public class ReactiveAerospikeTemplate extends BaseAerospikeTemplate implements 
         return results;
     }
 
-    <T, S> Flux<?> findAllUsingQuery(Class<T> entityClass, Class<S> targetClass, Filter filter, Qualifier... qualifiers) {
+    <T, S> Flux<?> findAllUsingQuery(Class<T> entityClass, Class<S> targetClass, Filter filter,
+                                     Qualifier... qualifiers) {
         if (targetClass != null) {
             return findAllRecordsUsingQuery(entityClass, targetClass, filter, qualifiers)
-                    .map(keyRecord -> mapToEntity(keyRecord.key, targetClass, keyRecord.record));
+                .map(keyRecord -> mapToEntity(keyRecord.key, targetClass, keyRecord.record));
         }
         return findAllRecordsUsingQuery(entityClass, null, filter, qualifiers)
-                .map(keyRecord -> mapToEntity(keyRecord.key, entityClass, keyRecord.record));
+            .map(keyRecord -> mapToEntity(keyRecord.key, entityClass, keyRecord.record));
     }
 
     <T> Flux<KeyRecord> findAllRecordsUsingQuery(Class<T> entityClass, Query query) {
@@ -684,7 +706,8 @@ public class ReactiveAerospikeTemplate extends BaseAerospikeTemplate implements 
         return findAllRecordsUsingQuery(entityClass, null, null, qualifier);
     }
 
-    <T, S> Flux<KeyRecord> findAllRecordsUsingQuery(Class<T> entityClass, Class<S> targetClass, Filter filter, Qualifier... qualifiers) {
+    <T, S> Flux<KeyRecord> findAllRecordsUsingQuery(Class<T> entityClass, Class<S> targetClass, Filter filter,
+                                                    Qualifier... qualifiers) {
         String setName = getSetName(entityClass);
 
         if (targetClass != null) {

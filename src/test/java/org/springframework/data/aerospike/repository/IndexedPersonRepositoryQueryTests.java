@@ -26,7 +26,15 @@ import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.springframework.data.aerospike.repository.PersonTestData.Indexed.*;
+import static org.springframework.data.aerospike.repository.PersonTestData.Indexed.alicia;
+import static org.springframework.data.aerospike.repository.PersonTestData.Indexed.boyd;
+import static org.springframework.data.aerospike.repository.PersonTestData.Indexed.carter;
+import static org.springframework.data.aerospike.repository.PersonTestData.Indexed.dave;
+import static org.springframework.data.aerospike.repository.PersonTestData.Indexed.donny;
+import static org.springframework.data.aerospike.repository.PersonTestData.Indexed.leroi;
+import static org.springframework.data.aerospike.repository.PersonTestData.Indexed.leroi2;
+import static org.springframework.data.aerospike.repository.PersonTestData.Indexed.oliver;
+import static org.springframework.data.aerospike.repository.PersonTestData.Indexed.stefan;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class IndexedPersonRepositoryQueryTests extends BaseBlockingIntegrationTests {
@@ -45,17 +53,28 @@ public class IndexedPersonRepositoryQueryTests extends BaseBlockingIntegrationTe
 
         repository.saveAll(Indexed.all);
 
-        additionalAerospikeTestOperations.createIndexIfNotExists(IndexedPerson.class, "indexed_person_last_name_index", "lastName", IndexType.STRING);
-        additionalAerospikeTestOperations.createIndexIfNotExists(IndexedPerson.class, "indexed_person_first_name_index", "firstName", IndexType.STRING);
-        additionalAerospikeTestOperations.createIndexIfNotExists(IndexedPerson.class, "indexed_person_age_index", "age", IndexType.NUMERIC);
-        additionalAerospikeTestOperations.createIndexIfNotExists(IndexedPerson.class, "indexed_person_strings_index", "strings", IndexType.STRING, IndexCollectionType.LIST);
-        additionalAerospikeTestOperations.createIndexIfNotExists(IndexedPerson.class, "indexed_person_ints_index", "ints", IndexType.NUMERIC, IndexCollectionType.LIST);
-        additionalAerospikeTestOperations.createIndexIfNotExists(IndexedPerson.class, "indexed_person_string_map_keys_index", "stringMap", IndexType.STRING, IndexCollectionType.MAPKEYS);
-        additionalAerospikeTestOperations.createIndexIfNotExists(IndexedPerson.class, "indexed_person_string_map_values_index", "stringMap", IndexType.STRING, IndexCollectionType.MAPVALUES);
-        additionalAerospikeTestOperations.createIndexIfNotExists(IndexedPerson.class, "indexed_person_int_map_keys_index", "intMap", IndexType.STRING, IndexCollectionType.MAPKEYS);
-        additionalAerospikeTestOperations.createIndexIfNotExists(IndexedPerson.class, "indexed_person_int_map_values_index", "intMap", IndexType.NUMERIC, IndexCollectionType.MAPVALUES);
-        additionalAerospikeTestOperations.createIndexIfNotExists(IndexedPerson.class, "indexed_person_address_keys_index", "address", IndexType.STRING, IndexCollectionType.MAPKEYS);
-        additionalAerospikeTestOperations.createIndexIfNotExists(IndexedPerson.class, "indexed_person_address_values_index", "address", IndexType.STRING, IndexCollectionType.MAPVALUES);
+        additionalAerospikeTestOperations.createIndexIfNotExists(IndexedPerson.class, "indexed_person_last_name_index"
+            , "lastName", IndexType.STRING);
+        additionalAerospikeTestOperations.createIndexIfNotExists(IndexedPerson.class,
+            "indexed_person_first_name_index", "firstName", IndexType.STRING);
+        additionalAerospikeTestOperations.createIndexIfNotExists(IndexedPerson.class, "indexed_person_age_index",
+            "age", IndexType.NUMERIC);
+        additionalAerospikeTestOperations.createIndexIfNotExists(IndexedPerson.class, "indexed_person_strings_index",
+            "strings", IndexType.STRING, IndexCollectionType.LIST);
+        additionalAerospikeTestOperations.createIndexIfNotExists(IndexedPerson.class, "indexed_person_ints_index",
+            "ints", IndexType.NUMERIC, IndexCollectionType.LIST);
+        additionalAerospikeTestOperations.createIndexIfNotExists(IndexedPerson.class,
+            "indexed_person_string_map_keys_index", "stringMap", IndexType.STRING, IndexCollectionType.MAPKEYS);
+        additionalAerospikeTestOperations.createIndexIfNotExists(IndexedPerson.class,
+            "indexed_person_string_map_values_index", "stringMap", IndexType.STRING, IndexCollectionType.MAPVALUES);
+        additionalAerospikeTestOperations.createIndexIfNotExists(IndexedPerson.class,
+            "indexed_person_int_map_keys_index", "intMap", IndexType.STRING, IndexCollectionType.MAPKEYS);
+        additionalAerospikeTestOperations.createIndexIfNotExists(IndexedPerson.class,
+            "indexed_person_int_map_values_index", "intMap", IndexType.NUMERIC, IndexCollectionType.MAPVALUES);
+        additionalAerospikeTestOperations.createIndexIfNotExists(IndexedPerson.class,
+            "indexed_person_address_keys_index", "address", IndexType.STRING, IndexCollectionType.MAPKEYS);
+        additionalAerospikeTestOperations.createIndexIfNotExists(IndexedPerson.class,
+            "indexed_person_address_values_index", "address", IndexType.STRING, IndexCollectionType.MAPVALUES);
         indexRefresher.refreshIndexes();
     }
 
@@ -126,12 +145,13 @@ public class IndexedPersonRepositoryQueryTests extends BaseBlockingIntegrationTe
 
     @Test
     public void findsAllWithGivenIds() {
-        List<IndexedPerson> result = (List<IndexedPerson>) repository.findAllById(Arrays.asList(dave.getId(), boyd.getId()));
+        List<IndexedPerson> result = (List<IndexedPerson>) repository.findAllById(Arrays.asList(dave.getId(),
+            boyd.getId()));
 
         assertThat(result)
-                .contains(dave, boyd)
-                .hasSize(2)
-                .doesNotContain(oliver, carter, stefan, leroi, alicia);
+            .contains(dave, boyd)
+            .hasSize(2)
+            .doesNotContain(oliver, carter, stefan, leroi, alicia);
     }
 
     @Test
@@ -139,8 +159,8 @@ public class IndexedPersonRepositoryQueryTests extends BaseBlockingIntegrationTe
         List<IndexedPerson> result = repository.findByLastName("Beauford");
 
         assertThat(result)
-                .containsOnly(carter)
-                .hasSize(1);
+            .containsOnly(carter)
+            .hasSize(1);
     }
 
     @Test
@@ -148,15 +168,15 @@ public class IndexedPersonRepositoryQueryTests extends BaseBlockingIntegrationTe
         List<IndexedPerson> result = repository.findByFirstName("Leroi");
 
         assertThat(result)
-                .containsOnly(leroi, leroi2)
-                .hasSize(2);
+            .containsOnly(leroi, leroi2)
+            .hasSize(2);
     }
 
     @Test
     public void countByLastName_forExistingResult() {
         assertThatThrownBy(() -> repository.countByLastName("Leroi"))
-                .isInstanceOf(UnsupportedOperationException.class)
-                .hasMessage("Query method IndexedPerson.countByLastName not supported.");
+            .isInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Query method IndexedPerson.countByLastName not supported.");
 
 //		assertThat(result).isEqualTo(2);
     }
@@ -164,8 +184,8 @@ public class IndexedPersonRepositoryQueryTests extends BaseBlockingIntegrationTe
     @Test
     public void countByLastName_forEmptyResult() {
         assertThatThrownBy(() -> repository.countByLastName("Smirnova"))
-                .isInstanceOf(UnsupportedOperationException.class)
-                .hasMessage("Query method IndexedPerson.countByLastName not supported.");
+            .isInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Query method IndexedPerson.countByLastName not supported.");
 
 //		assertThat(result).isEqualTo(0);
     }
@@ -184,20 +204,20 @@ public class IndexedPersonRepositoryQueryTests extends BaseBlockingIntegrationTe
         Slice<IndexedPerson> slice = repository.findByAgeGreaterThan(40, PageRequest.of(0, 1));
 
         assertThat(slice.hasContent()).isTrue();
-        assertThat(slice.hasNext()).isFalse();//TODO: not implemented yet. should be true instead
+        assertThat(slice.hasNext()).isFalse(); // TODO: not implemented yet. should be true instead
         assertThat(slice.getContent()).containsAnyOf(dave, carter, boyd, leroi).hasSize(1);
     }
 
     @Test
     public void findByAgeGreaterThan_respectsLimitAndOffsetAndSort() {
         List<IndexedPerson> result = IntStream.range(0, 4)
-                .mapToObj(index -> repository.findByAgeGreaterThan(40, PageRequest.of(index, 1, Sort.by("age"))))
-                .flatMap(slice -> slice.getContent().stream())
-                .collect(Collectors.toList());
+            .mapToObj(index -> repository.findByAgeGreaterThan(40, PageRequest.of(index, 1, Sort.by("age"))))
+            .flatMap(slice -> slice.getContent().stream())
+            .collect(Collectors.toList());
 
         assertThat(result)
-                .hasSize(4)
-                .containsSequence(leroi, dave, boyd, carter);
+            .hasSize(4)
+            .containsSequence(leroi, dave, boyd, carter);
     }
 
     @Test
@@ -206,7 +226,7 @@ public class IndexedPersonRepositoryQueryTests extends BaseBlockingIntegrationTe
 
         assertThat(first.hasContent()).isTrue();
         assertThat(first.getNumberOfElements()).isEqualTo(1);
-        assertThat(first.hasNext()).isFalse();//TODO: not implemented yet. should be true instead
+        assertThat(first.hasNext()).isFalse(); // TODO: not implemented yet. should be true instead
         assertThat(first.isFirst()).isTrue();
 
         Slice<IndexedPerson> last = repository.findByAgeGreaterThan(40, PageRequest.of(3, 1, Sort.by("age")));
@@ -269,28 +289,30 @@ public class IndexedPersonRepositoryQueryTests extends BaseBlockingIntegrationTe
 
     @Test
     void findByMapKeysContaining() {
-        assertThat(stefan.getStringMap().containsKey("key1")).isTrue();
-        assertThat(boyd.getStringMap().containsKey("key1")).isTrue();
+        assertThat(stefan.getStringMap()).containsKey("key1");
+        assertThat(boyd.getStringMap()).containsKey("key1");
 
-        List<IndexedPerson> persons = repository.findByStringMapContaining("key1", CriteriaDefinition.AerospikeMapCriteria.KEY);
+        List<IndexedPerson> persons = repository.findByStringMapContaining("key1",
+            CriteriaDefinition.AerospikeMapCriteria.KEY);
 
         assertThat(persons).contains(stefan, boyd);
     }
 
     @Test
     void findByMapValuesContaining() {
-        assertThat(stefan.getStringMap().containsValue("val1")).isTrue();
-        assertThat(boyd.getStringMap().containsValue("val1")).isTrue();
+        assertThat(stefan.getStringMap()).containsValue("val1");
+        assertThat(boyd.getStringMap()).containsValue("val1");
 
-        List<IndexedPerson> persons = repository.findByStringMapContaining("val1", CriteriaDefinition.AerospikeMapCriteria.VALUE);
+        List<IndexedPerson> persons = repository.findByStringMapContaining("val1",
+            CriteriaDefinition.AerospikeMapCriteria.VALUE);
 
         assertThat(persons).contains(stefan, boyd);
     }
 
     @Test
     void findByMapKeyValueEqualsInt() {
-        assertThat(leroi.getIntMap().containsKey("key1")).isTrue();
-        assertThat(leroi.getIntMap().containsValue(0)).isTrue();
+        assertThat(leroi.getIntMap()).containsKey("key1");
+        assertThat(leroi.getIntMap()).containsValue(0);
 
         Iterable<IndexedPerson> result = repository.findByIntMapEquals("key1", 0);
 
@@ -299,10 +321,10 @@ public class IndexedPersonRepositoryQueryTests extends BaseBlockingIntegrationTe
 
     @Test
     void findByMapKeyValueEqualsString() {
-        assertThat(stefan.getStringMap().containsKey("key1")).isTrue();
-        assertThat(stefan.getStringMap().containsValue("val1")).isTrue();
-        assertThat(boyd.getStringMap().containsKey("key1")).isTrue();
-        assertThat(boyd.getStringMap().containsValue("val1")).isTrue();
+        assertThat(stefan.getStringMap()).containsKey("key1");
+        assertThat(stefan.getStringMap()).containsValue("val1");
+        assertThat(boyd.getStringMap()).containsKey("key1");
+        assertThat(boyd.getStringMap()).containsValue("val1");
 
         List<IndexedPerson> persons = repository.findByStringMapEquals("key1", "val1");
 
@@ -310,7 +332,7 @@ public class IndexedPersonRepositoryQueryTests extends BaseBlockingIntegrationTe
     }
 
     @Test
-    public void findPersonsByAddressZipCode() {
+    void findPersonsByAddressZipCode() {
         List<IndexedPerson> result = repository.findByAddressZipCode("C0123");
 
         assertThat(result).containsExactly(dave);
@@ -318,7 +340,7 @@ public class IndexedPersonRepositoryQueryTests extends BaseBlockingIntegrationTe
 
     @Test
     void findByMapKeyValueGreaterThan() {
-        assertThat(leroi.getIntMap().containsKey("key2")).isTrue();
+        assertThat(leroi.getIntMap()).containsKey("key2");
         assertThat(leroi.getIntMap().get("key2") > 0).isTrue();
 
         List<IndexedPerson> persons = repository.findByIntMapGreaterThan("key2", 0);
@@ -328,7 +350,7 @@ public class IndexedPersonRepositoryQueryTests extends BaseBlockingIntegrationTe
 
     @Test
     void findByMapKeyValueLessThanOrEqual() {
-        assertThat(leroi.getIntMap().containsKey("key2")).isTrue();
+        assertThat(leroi.getIntMap()).containsKey("key2");
         assertThat(leroi.getIntMap().get("key2") > 0).isTrue();
 
         List<IndexedPerson> persons = repository.findByIntMapLessThanEqual("key2", 1);
@@ -338,8 +360,8 @@ public class IndexedPersonRepositoryQueryTests extends BaseBlockingIntegrationTe
 
     @Test
     void findByMapKeyValueBetween() {
-        assertThat(carter.getIntMap().containsKey("key2")).isTrue();
-        assertThat(leroi.getIntMap().containsKey("key2")).isTrue();
+        assertThat(carter.getIntMap()).containsKey("key2");
+        assertThat(leroi.getIntMap()).containsKey("key2");
         assertThat(carter.getIntMap().get("key2") >= 0).isTrue();
         assertThat(leroi.getIntMap().get("key2") >= 0).isTrue();
 

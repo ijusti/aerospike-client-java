@@ -18,8 +18,9 @@ package org.springframework.data.aerospike.core;
 import org.springframework.dao.support.PersistenceExceptionTranslator;
 
 /**
+ * Translate AerospikeException if possible.
+ *
  * @author Oliver Gierke
  */
 public interface AerospikeExceptionTranslator extends PersistenceExceptionTranslator {
-
 }
