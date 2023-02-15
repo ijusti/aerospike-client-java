@@ -27,15 +27,14 @@ import org.springframework.data.convert.CustomConversions;
 import org.springframework.data.convert.EntityReader;
 import org.springframework.data.convert.TypeAliasAccessor;
 import org.springframework.data.convert.TypeMapper;
+import org.springframework.data.mapping.InstanceCreatorMetadata;
 import org.springframework.data.mapping.PersistentPropertyAccessor;
-import org.springframework.data.mapping.PreferredConstructor;
 import org.springframework.data.mapping.PropertyHandler;
 import org.springframework.data.mapping.model.ConvertingPropertyAccessor;
 import org.springframework.data.mapping.model.EntityInstantiator;
 import org.springframework.data.mapping.model.EntityInstantiators;
 import org.springframework.data.mapping.model.PersistentEntityParameterValueProvider;
 import org.springframework.data.mapping.model.PropertyValueProvider;
-import org.springframework.data.util.ClassTypeInformation;
 import org.springframework.data.util.TypeInformation;
 import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
@@ -85,7 +84,7 @@ public class MappingAerospikeReadConverter implements EntityReader<Object, Aeros
 
         Map<String, Object> aeroRecord = data.getAeroRecord();
         TypeInformation<? extends R> typeToUse =
-            typeMapper.readType(aeroRecord, ClassTypeInformation.from(targetClass));
+            typeMapper.readType(aeroRecord, TypeInformation.of(targetClass));
         Class<? extends R> rawType = typeToUse.getType();
         if (conversions.hasCustomReadTarget(AerospikeReadData.class, rawType)) {
             return conversionService.convert(data, rawType);
@@ -112,17 +111,16 @@ public class MappingAerospikeReadConverter implements EntityReader<Object, Aeros
                                     PersistentPropertyAccessor<?> accessor) {
         entity.doWithProperties((PropertyHandler<AerospikePersistentProperty>) persistentProperty -> {
 
-            PreferredConstructor<?, AerospikePersistentProperty> constructor = entity.getPersistenceConstructor();
-
-            if (constructor.isConstructorParameter(persistentProperty)) {
+            InstanceCreatorMetadata<?> creatorMetadata = entity.getInstanceCreatorMetadata();
+            if (creatorMetadata != null && creatorMetadata.isCreatorParameter(persistentProperty)) {
                 return;
             }
 
             Object value = propertyValueProvider.getPropertyValue(persistentProperty);
-
             if (persistentProperty.getType().isPrimitive() && value == null) {
                 return;
             }
+
             accessor.setProperty(persistentProperty, value);
         });
 
@@ -142,10 +140,10 @@ public class MappingAerospikeReadConverter implements EntityReader<Object, Aeros
         } else if (propertyType.isCollectionLike()) {
             /*
              * Byte arrays should not be converted or waste time on unnecessary convert collection flow -
-             * if the source type is byte[] and the target class is also byte[] ("[B").
+             * if the source type is byte[] and the target class is also byte[].
              * If target is a List<Byte> then convert as a collection.
              */
-            if (source instanceof byte[] && targetClass.getName().equals("[B")) {
+            if (source instanceof byte[] && targetClass == byte[].class) {
                 return (T) source;
             }
             return convertCollection(asCollection(source), propertyType);
@@ -206,7 +204,7 @@ public class MappingAerospikeReadConverter implements EntityReader<Object, Aeros
         return (R) convertIfNeeded(items, propertyType.getType());
     }
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"unchecked", "rawtypes"})
     private Object convertIfNeeded(Object value, Class<?> targetClass) {
         if (Enum.class.isAssignableFrom(targetClass)) {
             return Enum.valueOf((Class<Enum>) targetClass, value.toString());
