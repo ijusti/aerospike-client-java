@@ -107,10 +107,15 @@ public abstract class AdditionalAerospikeTestOperations {
         IndexUtils.dropIndex(client, getNamespace(), getSetName(entityClass), indexName);
     }
 
+    /**
+     * @deprecated since Aerospike Server ver. 6.1.0.1.
+     * Use {@link org.springframework.data.aerospike.core.AerospikeTemplate#indexExists(String)}
+     */
     // Do not use this code in production!
     // This will not guarantee the correct answer from Aerospike Server for all cases.
     // Also, it requests index status only from one Aerospike node, which is OK for tests, and NOT OK for Production
     // cluster.
+    @Deprecated
     public boolean indexExists(String indexName) {
         return IndexUtils.indexExists(client, getNamespace(), indexName);
     }

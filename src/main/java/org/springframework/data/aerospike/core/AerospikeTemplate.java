@@ -64,6 +64,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Supplier;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -82,6 +84,7 @@ import static org.springframework.data.aerospike.core.OperationUtils.operations;
 @Slf4j
 public class AerospikeTemplate extends BaseAerospikeTemplate implements AerospikeOperations {
 
+    private static final Pattern INDEX_EXISTS_REGEX_PATTERN = Pattern.compile("^FAIL:(-?\\d+).*$");
     private final IAerospikeClient client;
     private final QueryEngine queryEngine;
     private final IndexRefresher indexRefresher;
@@ -155,17 +158,42 @@ public class AerospikeTemplate extends BaseAerospikeTemplate implements Aerospik
     @Override
     public boolean indexExists(String indexName) {
         Assert.notNull(indexName, "Index name must not be null!");
-        log.warn("`indexExists` operation is deprecated. Please stop using it as it will be removed " +
-            "in next major release.");
 
         try {
             Node[] nodes = client.getNodes();
-            Node node = Utils.getRandomNode(nodes);
-            String response = Info.request(node, "sindex/" + namespace + '/' + indexName);
-            return !response.startsWith("FAIL:201");
+            for (Node node : nodes) {
+                String response = Info.request(node, "sindex-exists:ns=" + namespace + ";indexname=" + indexName);
+                if (response == null) throw new AerospikeException("Null node response");
+
+                if (response.equalsIgnoreCase("true")) {
+                    return true;
+                } else if (response.equalsIgnoreCase("false")) {
+                    return false;
+                } else {
+                    Matcher matcher = INDEX_EXISTS_REGEX_PATTERN.matcher(response);
+                    if (matcher.matches()) {
+                        int reason;
+                        try {
+                            reason = Integer.parseInt(matcher.group(1));
+                        } catch (NumberFormatException e) {
+                            throw new AerospikeException("Unexpected node response, unable to parse ResultCode: " +
+                                response);
+                        }
+
+                        // as for Server ver. >= 6.1.0.1 the response containing ResultCode.INVALID_NAMESPACE
+                        // means that the request should be sent to another node
+                        if (reason != ResultCode.INVALID_NAMESPACE) {
+                            throw new AerospikeException(reason);
+                        }
+                    } else {
+                        throw new AerospikeException("Unexpected node response: " + response);
+                    }
+                }
+            }
         } catch (AerospikeException e) {
             throw translateError(e);
         }
+        return false;
     }
 
     @Override
