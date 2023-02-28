@@ -46,7 +46,7 @@ public class AerospikeTemplateUpdateTests extends BaseBlockingIntegrationTests {
 
     @Test
     public void updatesEvenIfDocumentNotChanged() {
-        Person person = new Person(id, "Wolfgan", 11);
+        Person person = new Person(id, "Wolfgang", 11);
         template.insert(person);
 
         template.update(person);

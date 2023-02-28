@@ -18,6 +18,7 @@ package org.springframework.data.aerospike.core;
 import com.aerospike.client.Bin;
 import com.aerospike.client.Operation;
 import com.aerospike.client.Value;
+import org.springframework.lang.Nullable;
 
 import java.util.Map;
 import java.util.function.Function;
@@ -40,18 +41,38 @@ public class OperationUtils {
         return operations;
     }
 
+    static Operation[] operations(Bin[] bins, Function<Bin, Operation> binToOperation) {
+        return operations(bins, binToOperation, null, null);
+    }
+
+    static Operation[] operations(Bin[] bins, Function<Bin, Operation> binToOperation,
+                                  Operation[] precedingOperations) {
+        return operations(bins, binToOperation, precedingOperations, null);
+    }
+
     static Operation[] operations(Bin[] bins,
                                   Function<Bin, Operation> binToOperation,
-                                  Operation... additionalOperations) {
-        Operation[] operations = new Operation[bins.length + additionalOperations.length];
+                                  @Nullable Operation[] precedingOperations,
+                                  @Nullable Operation[] additionalOperations) {
+        int precedingOpsLength = precedingOperations == null ? 0 : precedingOperations.length;
+        int additionalOpsLength = additionalOperations == null ? 0 : additionalOperations.length;
+        Operation[] operations = new Operation[precedingOpsLength + bins.length + additionalOpsLength];
         int i = 0;
+        if (precedingOpsLength > 0) {
+            for (Operation precedingOp : precedingOperations) {
+                operations[i] = precedingOp;
+                i++;
+            }
+        }
         for (Bin bin : bins) {
             operations[i] = binToOperation.apply(bin);
             i++;
         }
-        for (Operation additionalOp : additionalOperations) {
-            operations[i] = additionalOp;
-            i++;
+        if (additionalOpsLength > 0) {
+            for (Operation additionalOp : additionalOperations) {
+                operations[i] = additionalOp;
+                i++;
+            }
         }
         return operations;
     }
