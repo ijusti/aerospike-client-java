@@ -22,6 +22,7 @@ import com.aerospike.client.command.ParticleType;
 import com.aerospike.client.exp.Exp;
 import com.aerospike.client.query.Filter;
 import lombok.Data;
+import org.springframework.data.aerospike.convert.MappingAerospikeConverter;
 
 import java.io.Serial;
 import java.io.Serializable;
@@ -44,6 +45,7 @@ public class Qualifier implements Map<String, Object>, Serializable {
     protected static final String VALUE1 = "value1";
     protected static final String VALUE2 = "value2";
     protected static final String VALUE3 = "value3";
+    protected static final String CONVERTER = "converter";
     protected static final String QUALIFIERS = "qualifiers";
     protected static final String OPERATION = "operation";
     protected static final String AS_FILTER = "queryAsFilter";
@@ -306,6 +308,11 @@ public class Qualifier implements Map<String, Object>, Serializable {
         @SuppressWarnings("UnusedReturnValue")
         public QualifierBuilder setValue3(Value value3) {
             this.map.put(VALUE3, value3);
+            return this;
+        }
+
+        public QualifierBuilder setConverter(MappingAerospikeConverter converter) {
+            this.map.put(CONVERTER, converter);
             return this;
         }
 
