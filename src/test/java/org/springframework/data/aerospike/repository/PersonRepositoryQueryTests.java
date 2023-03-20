@@ -205,14 +205,14 @@ public class PersonRepositoryQueryTests extends BaseBlockingIntegrationTests {
 
     @Test
     void findByAddressZipCodeContaining() {
-        carter.setAddress(new Address("Foo Street 2", "C0124", "C0123"));
+        carter.setAddress(new Address("Foo Street 2", 2, "C10124", "C0123"));
         repository.save(carter);
-        dave.setAddress(new Address("Foo Street 1", "C0123", "Bar"));
+        dave.setAddress(new Address("Foo Street 1", 1, "C10123", "Bar"));
         repository.save(dave);
-        boyd.setAddress(new Address(null, null, null));
+        boyd.setAddress(new Address(null, null, null, null));
         repository.save(boyd);
 
-        List<Person> persons = repository.findByAddressZipCodeContaining("C0");
+        List<Person> persons = repository.findByAddressZipCodeContaining("C10");
 
         assertThat(persons).containsExactlyInAnyOrder(carter, dave);
     }
@@ -318,14 +318,15 @@ public class PersonRepositoryQueryTests extends BaseBlockingIntegrationTests {
 
     @Test
     public void findPersonsByAddressZipCode() {
-        carter.setAddress(new Address("Foo Street 2", "C0124", "C0123"));
+        String zipCode = "C012345";
+        carter.setAddress(new Address("Foo Street 2", 2, "C012344", "C0123"));
         repository.save(carter);
-        dave.setAddress(new Address("Foo Street 1", "C0123", "Bar"));
+        dave.setAddress(new Address("Foo Street 1", 1, zipCode, "Bar"));
         repository.save(dave);
-        boyd.setAddress(new Address(null, null, null));
+        boyd.setAddress(new Address(null, null, null, null));
         repository.save(boyd);
 
-        List<Person> result = repository.findByAddressZipCode("C0123");
+        List<Person> result = repository.findByAddressZipCode(zipCode);
 
         assertThat(result)
             .hasSize(1)
@@ -578,7 +579,7 @@ public class PersonRepositoryQueryTests extends BaseBlockingIntegrationTests {
     public void findPersonsByFirstnameStartsWith() {
         List<Person> result = repository.findByFirstNameStartsWith("D");
 
-        assertThat(result).containsOnly(dave, donny);
+        assertThat(result).containsOnly(dave, donny, douglas);
     }
 
     @Test
@@ -650,7 +651,7 @@ public class PersonRepositoryQueryTests extends BaseBlockingIntegrationTests {
     @Test
     public void findPersonsByAddress() {
         if (IndexUtils.isFindByPojoSupported(client)) {
-            Address address = new Address("Foo Street 1", "C0123", "Bar");
+            Address address = new Address("Foo Street 1", 1, "C0123", "Bar");
             dave.setAddress(address);
             repository.save(dave);
 
@@ -662,7 +663,7 @@ public class PersonRepositoryQueryTests extends BaseBlockingIntegrationTests {
     @Test
     public void findPersonsByFriend() {
         if (IndexUtils.isFindByPojoSupported(client)) {
-            alicia.setAddress(new Address("Foo Street 1", "C0123", "Bar"));
+            alicia.setAddress(new Address("Foo Street 1", 1, "C0123", "Bar"));
             repository.save(alicia);
             oliver.setFriend(alicia);
             repository.save(oliver);
@@ -675,7 +676,7 @@ public class PersonRepositoryQueryTests extends BaseBlockingIntegrationTests {
     @Test
     public void findPersonsByFriendAddress() {
         if (IndexUtils.isFindByPojoSupported(client)) {
-            Address address = new Address("Foo Street 1", "C0123", "Bar");
+            Address address = new Address("Foo Street 1", 1, "C0123", "Bar");
             dave.setAddress(address);
             repository.save(dave);
 
@@ -689,6 +690,162 @@ public class PersonRepositoryQueryTests extends BaseBlockingIntegrationTests {
                 .containsExactly(carter);
 
             setFriendsToNull(carter);
+        }
+    }
+
+    @Test
+    public void findPersonsByFriendAddressZipCode() {
+        String zipCode = "C012345";
+        Address address = new Address("Foo Street 1", 1, zipCode, "Bar");
+        dave.setAddress(address);
+        repository.save(dave);
+
+        carter.setFriend(dave);
+        repository.save(carter);
+
+        List<Person> result = repository.findByFriendAddressZipCode(zipCode);
+
+        assertThat(result)
+            .hasSize(1)
+            .containsExactly(carter);
+
+        setFriendsToNull(carter);
+    }
+
+    @Test
+    public void findPersonsByFriendFriendAddressZipCode() {
+        String zipCode = "C0123";
+        Address address = new Address("Foo Street 1", 1, zipCode, "Bar");
+        dave.setAddress(address);
+        repository.save(dave);
+
+        carter.setFriend(dave);
+        repository.save(carter);
+        oliver.setFriend(carter);
+        repository.save(oliver);
+
+        List<Person> result = repository.findByFriendFriendAddressZipCode(zipCode);
+
+        assertThat(result)
+            .hasSize(1)
+            .containsExactly(oliver);
+
+        setFriendsToNull(carter, oliver);
+    }
+
+    @Test
+    // find by deeply nested String POJO field
+    public void findPersonsByFriendFriendFriendFriendFriendFriendFriendFriendBestFriendFriendAddressZipCode() {
+        String zipCode = "C0123";
+        Address address = new Address("Foo Street 1", 1, zipCode, "Bar");
+        dave.setAddress(address);
+        repository.save(dave);
+
+        alicia.setFriend(dave);
+        repository.save(alicia);
+        oliver.setBestFriend(alicia);
+        repository.save(oliver);
+        carter.setFriend(oliver);
+        repository.save(carter);
+        donny.setFriend(carter);
+        repository.save(donny);
+        boyd.setFriend(donny);
+        repository.save(boyd);
+        stefan.setFriend(boyd);
+        repository.save(stefan);
+        leroi.setFriend(stefan);
+        repository.save(leroi);
+        leroi2.setFriend(leroi);
+        repository.save(leroi2);
+        matias.setFriend(leroi2);
+        repository.save(matias);
+        douglas.setFriend(matias);
+        repository.save(douglas);
+
+        List<Person> result =
+            repository.findByFriendFriendFriendFriendFriendFriendFriendFriendBestFriendFriendAddressZipCode(zipCode);
+
+        assertThat(result)
+            .hasSize(1)
+            .containsExactly(douglas);
+
+        setFriendsToNull(all.toArray(Person[]::new));
+    }
+
+    @Test
+    // find by deeply nested Integer POJO field
+    public void findPersonsByFriendFriendFriendFriendFriendFriendFriendFriendBestFriendAddressApartmentNumber() {
+        int apartment = 10;
+        Address address = new Address("Foo Street 1", apartment, "C0123", "Bar");
+        alicia.setAddress(address);
+        repository.save(alicia);
+
+        oliver.setBestFriend(alicia);
+        repository.save(oliver);
+        carter.setFriend(oliver);
+        repository.save(carter);
+        donny.setFriend(carter);
+        repository.save(donny);
+        boyd.setFriend(donny);
+        repository.save(boyd);
+        stefan.setFriend(boyd);
+        repository.save(stefan);
+        leroi.setFriend(stefan);
+        repository.save(leroi);
+        leroi2.setFriend(leroi);
+        repository.save(leroi2);
+        douglas.setFriend(leroi2);
+        repository.save(douglas);
+        matias.setFriend(douglas);
+        repository.save(matias);
+
+        List<Person> result =
+            repository.findByFriendFriendFriendFriendFriendFriendFriendFriendBestFriendAddressApartment(apartment);
+
+        assertThat(result)
+            .hasSize(1)
+            .containsExactly(matias);
+
+        setFriendsToNull(all.toArray(Person[]::new));
+    }
+
+    @Test
+    // find by deeply nested POJO
+    public void findPersonsByFriendFriendFriendFriendFriendFriendFriendFriendBestFriendBestFriendAddress() {
+        if (IndexUtils.isFindByPojoSupported(client)) {
+            Address address = new Address("Foo Street 1", 1, "C0123", "Bar");
+            dave.setAddress(address);
+            repository.save(dave);
+
+            alicia.setBestFriend(dave);
+            repository.save(alicia);
+            oliver.setBestFriend(alicia);
+            repository.save(oliver);
+            carter.setFriend(oliver);
+            repository.save(carter);
+            donny.setFriend(carter);
+            repository.save(donny);
+            boyd.setFriend(donny);
+            repository.save(boyd);
+            stefan.setFriend(boyd);
+            repository.save(stefan);
+            leroi.setFriend(stefan);
+            repository.save(leroi);
+            matias.setFriend(leroi);
+            repository.save(matias);
+            douglas.setFriend(matias);
+            repository.save(douglas);
+            leroi2.setFriend(douglas);
+            repository.save(leroi2);
+
+            List<Person> result =
+                repository.findByFriendFriendFriendFriendFriendFriendFriendFriendBestFriendBestFriendAddress(address);
+
+            assertThat(result)
+                .hasSize(1)
+                .containsExactly(leroi2);
+
+            setFriendsToNull(all.toArray(Person[]::new));
         }
     }
 }

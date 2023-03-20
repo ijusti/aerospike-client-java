@@ -157,6 +157,7 @@ public class AerospikeQueryCreator extends AbstractQueryCreator<Query, Aerospike
                         case EQ:
                             op = FilterOperation.MAP_VALUE_EQ_BY_KEY;
                             setQbValuesForMapByKey(qb, v1, next);
+                            qb.setDotPath(part.getProperty().toDotPath());
                             break;
                         case NOTEQ:
                             op = FilterOperation.MAP_VALUE_NOTEQ_BY_KEY;
@@ -220,6 +221,7 @@ public class AerospikeQueryCreator extends AbstractQueryCreator<Query, Aerospike
                             break;
                         case NOTEQ:
                             op = FilterOperation.MAP_VALUE_NOTEQ_BY_KEY;
+                            qb.setDotPath(part.getProperty().toDotPath());
                             break;
                         case GT:
                             op = FilterOperation.MAP_VALUE_GT_BY_KEY;
@@ -251,6 +253,7 @@ public class AerospikeQueryCreator extends AbstractQueryCreator<Query, Aerospike
                     }
                     fieldName = part.getProperty().getSegment(); // POJO name, later passed to Exp.mapBin()
                     qb.setValue2(Value.get(property.getFieldName())); // VALUE2 contains key (field name)
+                    qb.setDotPath(part.getProperty().toDotPath());
                 } else if (isPojo(part)) { // if it is a first level POJO or a Map
                     // if it is a POJO compared for equality it already has op == FilterOperation.EQ
                     fieldName = part.getProperty().getSegment(); // POJO name, later passed to Exp.mapBin()

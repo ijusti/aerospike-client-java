@@ -2,6 +2,7 @@ package org.springframework.data.aerospike.query;
 
 import com.aerospike.client.AerospikeException;
 import com.aerospike.client.Value;
+import com.aerospike.client.cdt.CTX;
 import com.aerospike.client.cdt.ListReturnType;
 import com.aerospike.client.cdt.MapReturnType;
 import com.aerospike.client.command.ParticleType;
@@ -13,20 +14,14 @@ import com.aerospike.client.query.IndexCollectionType;
 import com.aerospike.client.query.RegexFlag;
 import org.springframework.data.aerospike.convert.MappingAerospikeConverter;
 import org.springframework.data.util.TypeInformation;
+import org.springframework.util.StringUtils;
 
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
 
-import static org.springframework.data.aerospike.query.Qualifier.CONVERTER;
-import static org.springframework.data.aerospike.query.Qualifier.FIELD;
-import static org.springframework.data.aerospike.query.Qualifier.IGNORE_CASE;
-import static org.springframework.data.aerospike.query.Qualifier.QUALIFIERS;
-import static org.springframework.data.aerospike.query.Qualifier.QualifierRegexpBuilder;
-import static org.springframework.data.aerospike.query.Qualifier.VALUE1;
-import static org.springframework.data.aerospike.query.Qualifier.VALUE2;
-import static org.springframework.data.aerospike.query.Qualifier.VALUE3;
+import static org.springframework.data.aerospike.query.Qualifier.*;
 
 public enum FilterOperation {
 
@@ -279,22 +274,53 @@ public enum FilterOperation {
     MAP_VALUE_EQ_BY_KEY {
         @Override
         public Exp filterExp(Map<String, Object> map) {
-            // VALUE2 contains key (field name)
+            String[] dotPathArr = getDotPathArray(getDotPath(map),
+                "MAP_VALUE_EQ_BY_KEY filter expression: dotPath has not been set");
+            final boolean useCtx = dotPathArr.length > 2;
+            Exp mapExp;
+
             return switch (getValue1(map).getType()) {
-                case ParticleType.STRING -> Exp.eq(
-                    MapExp.getByKey(MapReturnType.VALUE, Exp.Type.STRING, Exp.val(getValue2(map).toString()),
-                        Exp.mapBin(getField(map))),
-                    Exp.val(getValue1(map).toString()));
-                case ParticleType.INTEGER -> Exp.eq(
-                    MapExp.getByKey(MapReturnType.VALUE, Exp.Type.INT, Exp.val(getValue2(map).toString()),
-                        Exp.mapBin(getField(map))),
-                    Exp.val(getValue1(map).toLong()));
+                case ParticleType.STRING -> {
+                    if (useCtx) {
+                        mapExp = MapExp.getByKey(MapReturnType.VALUE, Exp.Type.STRING,
+                            Exp.val(getValue2(map).toString()), // VALUE2 contains key (field name)
+                            Exp.mapBin(getField(map)), dotPathToCtx(dotPathArr));
+                    } else {
+                        mapExp = MapExp.getByKey(MapReturnType.VALUE, Exp.Type.STRING,
+                            Exp.val(getValue2(map).toString()),
+                            Exp.mapBin(getField(map)));
+                    }
+
+                    yield Exp.eq(mapExp, Exp.val(getValue1(map).toString()));
+                }
+                case ParticleType.INTEGER -> {
+                    if (useCtx) {
+                        mapExp = MapExp.getByKey(MapReturnType.VALUE, Exp.Type.INT,
+                            Exp.val(getValue2(map).toString()), // VALUE2 contains key (field name)
+                            Exp.mapBin(getField(map)), dotPathToCtx(dotPathArr));
+                    } else {
+                        mapExp = MapExp.getByKey(MapReturnType.VALUE, Exp.Type.INT,
+                            Exp.val(getValue2(map).toString()),
+                            Exp.mapBin(getField(map)));
+                    }
+
+                    yield Exp.eq(mapExp, Exp.val(getValue1(map).toLong()));
+                }
                 case ParticleType.JBLOB -> {
                     Object obj = getValue1(map).getObject();
-                    yield Exp.eq(
-                        MapExp.getByKey(MapReturnType.VALUE, Exp.Type.MAP, Exp.val(getValue2(map).toString()),
-                            Exp.mapBin(getField(map))),
-                        toExp(getConverter(map).toWritableValue(obj, TypeInformation.of(obj.getClass()))));
+                    if (useCtx) {
+                        mapExp = MapExp.getByKey(MapReturnType.VALUE, Exp.Type.MAP,
+                            Exp.val(getValue2(map).toString()), // VALUE2 contains key (field name)
+                            Exp.mapBin(getField(map)), dotPathToCtx(dotPathArr));
+                    } else {
+                        mapExp = MapExp.getByKey(MapReturnType.VALUE, Exp.Type.MAP,
+                            Exp.val(getValue2(map).toString()),
+                            Exp.mapBin(getField(map)));
+                    }
+
+                    yield Exp.eq(mapExp,
+                        toExp(getConverter(map).toWritableValue(obj, TypeInformation.of(obj.getClass())))
+                    );
                 }
                 default -> throw new AerospikeException(
                     "FilterExpression unsupported type: expected String or Long (FilterOperation " +
@@ -307,13 +333,19 @@ public enum FilterOperation {
          */
         @Override
         public Filter sIndexFilter(Map<String, Object> map) {
+            String[] dotPathArr = getDotPathArray(getDotPath(map),
+                "MAP_VALUE_EQ_BY_KEY secondary index filter: dotPath has not been set");
+            final boolean useCtx = dotPathArr.length > 2;
+
             return switch (getValue1(map).getType()) {
                 case ParticleType.STRING -> {
                     // There is no case-insensitive string comparison filter.
                     if ((!ignoreCase(map))) {
-                        yield Filter.contains(getField(map), IndexCollectionType.MAPVALUES, getValue1(map).toString());
+                        yield Filter.contains(getField(map), IndexCollectionType.MAPVALUES,
+                            getValue1(map).toString());
                     } else {
-                        yield null;
+                        throw new IllegalArgumentException(
+                            "MAP_VALUE_EQ_BY_KEY: case-insensitive string comparison filter is not supported");
                     }
                 }
                 case ParticleType.INTEGER ->
@@ -847,6 +879,29 @@ public enum FilterOperation {
         }
     };
 
+    private static String[] getDotPathArray(String dotPath, String errMsg) {
+        if (StringUtils.hasLength(dotPath)) {
+            return dotPath.split("\\.");
+        } else {
+            throw new IllegalArgumentException(errMsg);
+        }
+    }
+
+    /**
+     * FilterOperations that require both sIndexFilter and FilterExpression
+     */
+    public static final List<FilterOperation> dualFilterOperations = Arrays.asList(
+        MAP_VALUE_EQ_BY_KEY, MAP_VALUE_GT_BY_KEY, MAP_VALUE_GTEQ_BY_KEY, MAP_VALUE_LT_BY_KEY, MAP_VALUE_LTEQ_BY_KEY,
+        MAP_VALUES_BETWEEN_BY_KEY
+    );
+
+    private static CTX[] dotPathToCtx(String[] dotPathArray) {
+        return Arrays.stream(dotPathArray).map(str -> CTX.mapKey(Value.get(str)))
+            .skip(1) // first element is bin name
+            .limit(dotPathArray.length - 2L) // last element is the key we already have
+            .toArray(CTX[]::new);
+    }
+
     private static Exp toExp(Object value) {
         Exp res;
 
@@ -867,20 +922,12 @@ public enum FilterOperation {
         } else if (value instanceof Calendar) {
             res = Exp.val((Calendar) value);
         } else {
-            throw new IllegalArgumentException("Unsupported type for converting: " + value.getClass().getCanonicalName()
-            );
+            throw new IllegalArgumentException("Unsupported type for converting: " + value.getClass()
+                .getCanonicalName());
         }
 
         return res;
     }
-
-    /**
-     * FilterOperations that require both sIndexFilter and FilterExpression
-     */
-    public static final List<FilterOperation> dualFilterOperations = Arrays.asList(
-        MAP_VALUE_EQ_BY_KEY, MAP_VALUE_GT_BY_KEY, MAP_VALUE_GTEQ_BY_KEY, MAP_VALUE_LT_BY_KEY, MAP_VALUE_LTEQ_BY_KEY,
-        MAP_VALUES_BETWEEN_BY_KEY
-    );
 
     public abstract Exp filterExp(Map<String, Object> map);
 
@@ -908,6 +955,10 @@ public enum FilterOperation {
 
     protected Value getValue3(Map<String, Object> map) {
         return (Value) map.get(VALUE3);
+    }
+
+    protected String getDotPath(Map<String, Object> map) {
+        return (String) map.get(DOT_PATH);
     }
 
     protected MappingAerospikeConverter getConverter(Map<String, Object> map) {
