@@ -128,7 +128,7 @@ import org.springframework.data.aerospike.example.repo.PersonRepository;
 import java.util.Collection;
 import java.util.Collections;
 
-@Configuration
+@Configuration(proxyBeanMethods = false)
 @EnableAerospikeRepositories(basePackageClasses = PersonRepository.class)
 public class AerospikeConfiguration extends AbstractAerospikeDataConfiguration  {
 

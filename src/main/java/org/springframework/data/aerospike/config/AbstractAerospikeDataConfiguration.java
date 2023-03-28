@@ -34,7 +34,7 @@ import org.springframework.data.aerospike.query.cache.IndexRefresher;
 import org.springframework.data.aerospike.query.cache.IndexesCacheUpdater;
 import org.springframework.data.aerospike.query.cache.InternalIndexOperations;
 
-@Configuration
+@Configuration(proxyBeanMethods = false)
 public abstract class AbstractAerospikeDataConfiguration extends AerospikeDataConfigurationSupport {
 
     @Bean(name = "aerospikeTemplate")

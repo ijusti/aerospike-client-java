@@ -17,6 +17,7 @@ package org.springframework.data.aerospike.config;
 
 import com.aerospike.client.AerospikeClient;
 import com.aerospike.client.Host;
+import com.aerospike.client.IAerospikeClient;
 import com.aerospike.client.policy.ClientPolicy;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.context.annotation.Bean;
@@ -51,7 +52,7 @@ import java.util.Set;
 /**
  * @author Taras Danylchuk
  */
-@Configuration
+@Configuration(proxyBeanMethods = false)
 public abstract class AerospikeDataConfigurationSupport {
 
     @Bean(name = "aerospikeStatementBuilder")
@@ -100,7 +101,7 @@ public abstract class AerospikeDataConfigurationSupport {
     }
 
     @Bean(name = "aerospikeClient", destroyMethod = "close")
-    public AerospikeClient aerospikeClient() {
+    public IAerospikeClient aerospikeClient() {
         Collection<Host> hosts = getHosts();
         return new AerospikeClient(getClientPolicy(), hosts.toArray(new Host[0]));
     }
